@@ -107,7 +107,7 @@ export default function ForecastPanel() {
           flexShrink: 0,
         }}
       >
-        FY 2125 FINANCIAL FORECAST
+        FY 2027 FINANCIAL FORECAST
       </div>
 
       {/* Projected Revenue */}

@@ -38,10 +38,10 @@ const TitleBlock: React.FC<{ isMobile: boolean }> = ({ isMobile }) => (
       }}
     >
       {isMobile ? (
-        <>SPEAKX <span style={{ color: 'var(--text-muted)' }}>|</span> FY 2124</>
+        <>SPEAKX <span style={{ color: 'var(--text-muted)' }}>|</span> FY 2025-26</>
       ) : (
         <>SPEAKX <span style={{ color: 'var(--text-muted)' }}>|</span> YEARLY PERFORMANCE REPORT{' '}
-        <span style={{ color: 'var(--text-muted)' }}>|</span> FY 2124</>
+        <span style={{ color: 'var(--text-muted)' }}>|</span> FY 2025-26</>
       )}
     </span>
     {!isMobile && (
@@ -54,7 +54,7 @@ const TitleBlock: React.FC<{ isMobile: boolean }> = ({ isMobile }) => (
           whiteSpace: 'nowrap',
         }}
       >
-        Critical data to the CFO and Financial Head
+        IVYPODS TECHNOLOGY PVT LTD — Live from Tally ERP
       </span>
     )}
   </div>
@@ -173,7 +173,7 @@ const Header: React.FC = () => {
                 whiteSpace: 'nowrap',
               }}
             >
-              14 OCT 2124
+              07 APR 2026
             </span>
           </>
         )}

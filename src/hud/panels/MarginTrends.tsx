@@ -32,13 +32,13 @@ interface TooltipData {
 const CHART = {
   width: 500,
   height: 200,
-  padLeft: 30,
+  padLeft: 36,
   padRight: 8,
   padTop: 10,
   padBottom: 24,
-  yMin: 10,
-  yMax: 50,
-  yStep: 10,
+  yMin: -150,
+  yMax: 100,
+  yStep: 50,
 };
 
 function getChartX(i: number, count: number): number {

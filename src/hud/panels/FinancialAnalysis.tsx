@@ -144,7 +144,7 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
             filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.2))',
           }}
         >
-          ₹{total.toFixed(1)}B
+          ₹{total.toFixed(1)} Cr
         </div>
         <div
           style={{
