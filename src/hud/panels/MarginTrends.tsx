@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { COLORS } from '../../theme/colors';
 import { FONTS } from '../../theme/typography';
 import { marginTrends } from '../../data/mockData';
 import { useTheme } from '../../theme/ThemeContext';

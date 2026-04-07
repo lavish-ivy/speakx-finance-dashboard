@@ -3,8 +3,8 @@ import OperatingExpenses from './panels/OperatingExpenses';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const LeftColumn = () => {
-  const { isMobile, isDesktop } = useBreakpoint();
-  const isCompact = !isDesktop; // mobile or tablet
+  const { isDesktop } = useBreakpoint();
+  const isCompact = !isDesktop;
 
   return (
     <div style={{

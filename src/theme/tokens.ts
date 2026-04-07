@@ -47,9 +47,9 @@ export const darkTokens: ThemeTokens = {
 };
 
 export const lightTokens: ThemeTokens = {
-  bgDeep: '#F0F2F8',
-  bgMid: '#E8EDF5',
-  bgCard: 'rgba(255, 255, 255, 0.80)',
+  bgDeep: '#FFFFFF',
+  bgMid: '#F8F9FC',
+  bgCard: 'rgba(255, 255, 255, 0.90)',
   borderCard: 'rgba(0, 0, 0, 0.10)',
   borderSubtle: 'rgba(0, 0, 0, 0.06)',
   textPrimary: '#1A1A2E',
