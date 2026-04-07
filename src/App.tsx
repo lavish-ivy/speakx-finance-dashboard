@@ -13,7 +13,7 @@ function App() {
 
   return (
     <div style={{
-      width: '100vw',
+      width: '100%',
       minHeight: '100vh',
       ...(isMobile ? {} : { height: '100vh', overflow: 'hidden' }),
       background: 'var(--bg-deep)',

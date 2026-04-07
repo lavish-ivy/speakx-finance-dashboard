@@ -14,6 +14,8 @@ html, body, #root {
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 html:not(.scrollable), body:not(.scrollable), #root:not(.scrollable) {

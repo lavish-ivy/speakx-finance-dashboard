@@ -27,7 +27,7 @@ const HUD = () => {
       position: isMobile ? 'relative' : 'absolute',
       top: 0,
       left: 0,
-      width: '100vw',
+      width: '100%',
       height: isMobile ? 'auto' : '100vh',
       minHeight: isMobile ? '100vh' : undefined,
       zIndex: 10,

@@ -23,7 +23,7 @@ const SpeakXLogo: React.FC<{ size?: number }> = ({ size = 32 }) => (
 );
 
 const TitleBlock: React.FC<{ isMobile: boolean }> = ({ isMobile }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
     <span
       style={{
         fontFamily: FONTS.header.family,
@@ -33,6 +33,8 @@ const TitleBlock: React.FC<{ isMobile: boolean }> = ({ isMobile }) => (
         letterSpacing: FONTS.header.letterSpacing,
         color: 'var(--text-primary)',
         whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
       }}
     >
       {isMobile ? (
@@ -152,25 +154,29 @@ const Header: React.FC = () => {
 
   return (
     <header className="fade-in-down" style={{ ...barStyle, animationDelay: '0.2s' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, minWidth: 0, flex: 1 }}>
         <SpeakXLogo size={isMobile ? 28 : 32} />
         <TitleBlock isMobile={isMobile} />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 16, flexShrink: 0 }}>
         <StatusDots isMobile={isMobile} />
         <ThemeToggleButton isDark={isDark} toggle={toggle} isMobile={isMobile} />
-        <CalendarIcon />
-        <span
-          style={{
-            fontFamily: "'Roboto Mono', monospace",
-            fontSize: isMobile ? 9 : SIZES.statusDate,
-            fontWeight: 400,
-            color: 'var(--text-muted)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          14 OCT 2124
-        </span>
+        {!isMobile && (
+          <>
+            <CalendarIcon />
+            <span
+              style={{
+                fontFamily: "'Roboto Mono', monospace",
+                fontSize: SIZES.statusDate,
+                fontWeight: 400,
+                color: 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              14 OCT 2124
+            </span>
+          </>
+        )}
       </div>
     </header>
   );

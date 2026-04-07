@@ -103,7 +103,8 @@ const FinancialKPIs: React.FC = () => {
                   index < kpiRows.length - 1
                     ? '1px solid var(--divider)'
                     : 'none',
-                whiteSpace: 'nowrap',
+                whiteSpace: isMobile ? undefined : 'nowrap',
+                overflow: 'hidden',
               }}
               className="fade-in-up"
             >
