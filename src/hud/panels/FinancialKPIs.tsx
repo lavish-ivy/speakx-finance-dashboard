@@ -33,7 +33,7 @@ const kpiRows: KpiRow[] = kpiKeyOrder.map((key) => {
     label: kpiLabels[key],
     value: isPercent
       ? formatPercent(kpi.value)
-      : formatCurrency(kpi.value, kpi.unit, kpi.currency),
+      : formatCurrency(kpi.value, kpi.unit, 'currency' in kpi ? kpi.currency : '₹'),
     color: kpi.color,
     sparkline: kpi.sparkline,
     isPercent,

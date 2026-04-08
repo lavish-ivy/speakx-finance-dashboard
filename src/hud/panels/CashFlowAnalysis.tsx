@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { cashFlowData } from '../../data/mockData';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useTheme } from '../../theme/ThemeContext';

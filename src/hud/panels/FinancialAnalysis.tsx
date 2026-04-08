@@ -175,7 +175,7 @@ interface ExpenseCatRowProps {
   mapColor: (c: string) => string;
 }
 
-function ExpenseCatRow({ category, pct, amount, color, maxPct, index, isMobile, mapColor }: ExpenseCatRowProps) {
+function ExpenseCatRow({ category, pct, color, maxPct, index, isMobile, mapColor }: ExpenseCatRowProps) {
   const mappedColor = mapColor(color);
   return (
     <div

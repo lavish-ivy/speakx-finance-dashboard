@@ -19,9 +19,6 @@ const monthlyExpenses = [1.89, 2.59, 3.40, 3.58, 3.10, 3.34, 3.55, 5.75, 4.79, 4
 /** Monthly net profit in Crores */
 const monthlyNetProfit = [2.49, 1.39, 0.89, 1.09, 1.38, 0.74, 0.13, -1.78, -0.10, -0.71, -1.20, -2.25];
 
-/** Monthly gross margin % */
-const monthlyGrossMarginPct = [98.5, 98.3, 98.5, 98.8, 98.7, 98.7, 98.6, 98.8, 98.9, 98.8, 98.6, 96.5];
-
 /** Monthly net margin % */
 const monthlyNetMarginPct = [56.9, 35.9, 20.9, 23.4, 31.2, 18.3, 3.5, -44.9, -2.3, -17.4, -35.4, -134.0];
 
@@ -33,7 +30,6 @@ const ytdIndirectExp = 46.17;   // Cr
 const ytdTotalExp    = 46.83;   // Cr  (direct + indirect)
 const ytdOtherIncome =  2.23;   // Cr
 const ytdNetProfit   =  2.09;   // Cr
-const ytdGrossMargin = 98.6;    // %
 const ytdNetMargin   =  4.5;    // %
 
 // ── OpEx Breakdown (real Tally sub-accounts, exploded TB) ───────────────────
