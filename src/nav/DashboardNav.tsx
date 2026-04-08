@@ -1,7 +1,8 @@
 import { NavLink } from 'react-router-dom';
 
 const links = [
-  { to: '/',               label: 'P&L' },
+  { to: '/',               label: 'OVERVIEW' },
+  { to: '/pnl',            label: 'P&L' },
   { to: '/balance-sheet',  label: 'BALANCE SHEET' },
   { to: '/cash',           label: 'CASH' },
   { to: '/trends',         label: 'TRENDS' },

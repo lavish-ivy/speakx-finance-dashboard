@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import OverviewPage from './pages/OverviewPage';
 import PnlPage from './pages/PnlPage';
 import BalanceSheetPage from './pages/BalanceSheetPage';
 import CashPage from './pages/CashPage';
@@ -13,7 +14,8 @@ function App() {
   return (
     <div style={{ width: '100%', minHeight: '100vh', background: 'var(--bg-deep)', position: 'relative', overflowX: 'hidden' }}>
       <Routes>
-        <Route path="/" element={<PnlPage />} />
+        <Route path="/" element={<OverviewPage />} />
+        <Route path="/pnl" element={<PnlPage />} />
         <Route path="/balance-sheet" element={<BalanceSheetPage />} />
         <Route path="/cash" element={<CashPage />} />
         <Route path="/trends" element={<TrendsPage />} />
