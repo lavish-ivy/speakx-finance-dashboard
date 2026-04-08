@@ -101,7 +101,6 @@ function AssetChart() {
 
 function LiabilitiesChart() {
   const { period } = useDashboard();
-  const mask = useMaskedValue();
   const eq = aggregate(monthlyEquity, period, true);
   const ncl = aggregate(monthlyNCL, period, true);
   const cl = aggregate(monthlyCL, period, true);
