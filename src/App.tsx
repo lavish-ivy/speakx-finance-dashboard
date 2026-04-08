@@ -17,6 +17,16 @@ function App() {
     <div style={{ width: '100%', minHeight: '100vh', background: 'var(--bg-deep)', position: 'relative', overflowX: 'hidden' }}>
       <GridFloor />
       <AmbientParticles />
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0, 242, 255, 0.02), transparent)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
       <Routes>
         <Route path="/" element={<OverviewPage />} />
         <Route path="/pnl" element={<PnlPage />} />
