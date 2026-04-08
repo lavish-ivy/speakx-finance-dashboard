@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router-dom';
 
 const links = [
-  { to: '/',    label: 'OVERVIEW' },
-  { to: '/v2',  label: 'V2 CLASSIC' },
+  { to: '/',               label: 'P&L' },
+  { to: '/balance-sheet',  label: 'BALANCE SHEET' },
+  { to: '/cash',           label: 'CASH' },
+  { to: '/trends',         label: 'TRENDS' },
 ];
 
 export default function DashboardNav() {
