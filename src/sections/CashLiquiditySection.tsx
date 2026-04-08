@@ -81,7 +81,7 @@ function CashTable() {
                 {row.sub && (
                   <div
                     style={{
-                      fontFamily: "'Roboto Mono', monospace",
+                      fontFamily: "'JetBrains Mono', monospace",
                       fontSize: 8,
                       color: 'var(--text-muted)',
                       marginTop: 1,
@@ -93,7 +93,7 @@ function CashTable() {
               </td>
               <td
                 style={{
-                  fontFamily: "'Roboto Mono', monospace",
+                  fontFamily: "'JetBrains Mono', monospace",
                   fontSize: 11,
                   color: row.bold ? 'var(--text-primary)' : 'var(--text-secondary)',
                   fontWeight: row.bold ? 700 : 400,
@@ -158,7 +158,7 @@ function CashPositionLineChart() {
           return (
             <g key={tv}>
               <line x1={padX} y1={yy} x2={padX + chartW} y2={yy} stroke="var(--chart-gridline)" strokeWidth={0.5} />
-              <text x={padX - 4} y={yy + 3} textAnchor="end" fill="var(--text-muted)" fontSize={7} fontFamily="'Roboto Mono', monospace">
+              <text x={padX - 4} y={yy + 3} textAnchor="end" fill="var(--text-muted)" fontSize={7} fontFamily="'JetBrains Mono', monospace">
                 ₹{tv.toFixed(0)}
               </text>
             </g>
@@ -199,7 +199,7 @@ function CashPositionLineChart() {
             textAnchor="middle"
             fill="var(--text-muted)"
             fontSize={7}
-            fontFamily="'Roboto Mono', monospace"
+            fontFamily="'JetBrains Mono', monospace"
           >
             {m}
           </text>

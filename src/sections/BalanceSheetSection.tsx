@@ -72,7 +72,7 @@ function BSTable({ title, rows }: { title: string; rows: BSRow[] }) {
               </td>
               <td
                 style={{
-                  fontFamily: "'Roboto Mono', monospace",
+                  fontFamily: "'JetBrains Mono', monospace",
                   fontSize: 11,
                   color: row.bold ? 'var(--text-primary)' : 'var(--text-secondary)',
                   fontWeight: row.bold ? 700 : 400,
@@ -160,7 +160,7 @@ function AssetDonut() {
             textAnchor="middle"
             fill="var(--text-primary)"
             fontSize={12}
-            fontFamily="'Roboto Mono', monospace"
+            fontFamily="'JetBrains Mono', monospace"
             fontWeight={700}
           >
             {assetComposition.centerLabel}
@@ -181,7 +181,7 @@ function AssetDonut() {
           {arcs.map((a) => (
             <div key={a.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: a.color }} />
-              <span style={{ fontFamily: "'Roboto Mono', monospace", fontSize: 8, color: 'var(--text-muted)' }}>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: 'var(--text-muted)' }}>
                 {a.label} {(a.pct * 100).toFixed(1)}%
               </span>
             </div>

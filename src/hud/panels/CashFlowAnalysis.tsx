@@ -42,7 +42,7 @@ function KPIChip({ label, value, unit, currency, color, isMobile, index }: KPICh
     >
       <div
         style={{
-          fontFamily: "'Roboto Mono', monospace",
+          fontFamily: "'JetBrains Mono', monospace",
           fontSize: isMobile ? 10 : 8,
           fontWeight: 500,
           textTransform: 'uppercase',
@@ -251,7 +251,7 @@ function MonthlyOCFChart({ mapColor, isMobile }: BarChartProps) {
             style={{
               flex: 1,
               textAlign: 'center',
-              fontFamily: "'Roboto Mono', monospace",
+              fontFamily: "'JetBrains Mono', monospace",
               fontSize: isMobile ? 9 : 7,
               color: 'var(--text-muted)',
             }}
@@ -341,7 +341,7 @@ export default function CashFlowAnalysis() {
       {/* Sub-header */}
       <div
         style={{
-          fontFamily: "'Roboto Mono', monospace",
+          fontFamily: "'JetBrains Mono', monospace",
           fontSize: isMobile ? 10 : 8,
           fontWeight: 500,
           textTransform: 'uppercase',

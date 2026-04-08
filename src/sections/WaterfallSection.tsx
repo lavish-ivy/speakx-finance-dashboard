@@ -104,7 +104,7 @@ function WaterfallChart() {
                 textAnchor="middle"
                 fill="var(--text-primary)"
                 fontSize={9}
-                fontFamily="'Roboto Mono', monospace"
+                fontFamily="'JetBrains Mono', monospace"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.12 + 0.4, duration: 0.3 }}
@@ -118,7 +118,7 @@ function WaterfallChart() {
                 textAnchor="middle"
                 fill="var(--text-muted)"
                 fontSize={8}
-                fontFamily="'Roboto Mono', monospace"
+                fontFamily="'JetBrains Mono', monospace"
               >
                 {bar.label}
               </text>
@@ -195,7 +195,7 @@ function ProfitabilityChart() {
           return (
             <g key={tv}>
               <line x1={padX} y1={yy} x2={padX + chartW} y2={yy} stroke="var(--chart-gridline)" strokeWidth={0.5} />
-              <text x={padX - 4} y={yy + 3} textAnchor="end" fill="var(--text-muted)" fontSize={7} fontFamily="'Roboto Mono', monospace">
+              <text x={padX - 4} y={yy + 3} textAnchor="end" fill="var(--text-muted)" fontSize={7} fontFamily="'JetBrains Mono', monospace">
                 {tv.toFixed(0)}%
               </text>
             </g>
@@ -232,7 +232,7 @@ function ProfitabilityChart() {
             textAnchor="middle"
             fill="var(--text-muted)"
             fontSize={6}
-            fontFamily="'Roboto Mono', monospace"
+            fontFamily="'JetBrains Mono', monospace"
           >
             {m}
           </text>
@@ -243,7 +243,7 @@ function ProfitabilityChart() {
         {[profitabilityData.ope, profitabilityData.roa].map((s) => (
           <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 8, height: 2, backgroundColor: s.color, borderRadius: 1 }} />
-            <span style={{ fontFamily: "'Roboto Mono', monospace", fontSize: 7, color: 'var(--text-muted)' }}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 7, color: 'var(--text-muted)' }}>
               {s.label} {s.currentValue}%
             </span>
           </div>
@@ -261,7 +261,7 @@ function DebtEquityBar() {
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        fontFamily: "'Roboto Mono', monospace",
+        fontFamily: "'JetBrains Mono', monospace",
       }}
     >
       <span style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>

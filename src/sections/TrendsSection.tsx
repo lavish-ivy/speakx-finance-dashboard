@@ -73,7 +73,7 @@ function HistoricalTrendsChart() {
           return (
             <g key={tv}>
               <line x1={padX} y1={yy} x2={padX + chartW} y2={yy} stroke="var(--chart-gridline)" strokeWidth={0.5} />
-              <text x={padX - 4} y={yy + 3} textAnchor="end" fill="var(--text-muted)" fontSize={7} fontFamily="'Roboto Mono', monospace">
+              <text x={padX - 4} y={yy + 3} textAnchor="end" fill="var(--text-muted)" fontSize={7} fontFamily="'JetBrains Mono', monospace">
                 ₹{tv.toFixed(1)}
               </text>
             </g>
@@ -109,7 +109,7 @@ function HistoricalTrendsChart() {
             textAnchor="middle"
             fill="var(--text-muted)"
             fontSize={7}
-            fontFamily="'Roboto Mono', monospace"
+            fontFamily="'JetBrains Mono', monospace"
           >
             {m}
           </text>
@@ -120,7 +120,7 @@ function HistoricalTrendsChart() {
         {series.map((s) => (
           <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 2, backgroundColor: s.color, borderRadius: 1 }} />
-            <span style={{ fontFamily: "'Roboto Mono', monospace", fontSize: 8, color: 'var(--text-muted)' }}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: 'var(--text-muted)' }}>
               {s.label}
             </span>
           </div>
@@ -174,7 +174,7 @@ function EquityTrendChart() {
           return (
             <g key={tv}>
               <line x1={padX} y1={yy} x2={padX + chartW} y2={yy} stroke="var(--chart-gridline)" strokeWidth={0.5} />
-              <text x={padX - 4} y={yy + 3} textAnchor="end" fill="var(--text-muted)" fontSize={7} fontFamily="'Roboto Mono', monospace">
+              <text x={padX - 4} y={yy + 3} textAnchor="end" fill="var(--text-muted)" fontSize={7} fontFamily="'JetBrains Mono', monospace">
                 ₹{tv.toFixed(0)}
               </text>
             </g>
@@ -215,7 +215,7 @@ function EquityTrendChart() {
                 textAnchor="middle"
                 fill="var(--text-primary)"
                 fontSize={7}
-                fontFamily="'Roboto Mono', monospace"
+                fontFamily="'JetBrains Mono', monospace"
               >
                 ₹{data[i].toFixed(0)} Cr
               </text>
@@ -231,7 +231,7 @@ function EquityTrendChart() {
             textAnchor="middle"
             fill="var(--text-muted)"
             fontSize={7}
-            fontFamily="'Roboto Mono', monospace"
+            fontFamily="'JetBrains Mono', monospace"
           >
             {m}
           </text>

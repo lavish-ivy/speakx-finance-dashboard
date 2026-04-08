@@ -138,7 +138,7 @@ const Bar: React.FC<{
       {/* X-axis label */}
       <span
         style={{
-          fontFamily: "'Roboto Mono', monospace",
+          fontFamily: "'JetBrains Mono', monospace",
           fontSize: isMobile ? 11 : 9,
           fontWeight: 400,
           color: 'var(--text-muted)',

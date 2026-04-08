@@ -192,7 +192,7 @@ const MultiLineChart: React.FC<MultiLineChartProps> = ({
               dominantBaseline="central"
               fill="#8A8F98"
               fontSize={8}
-              fontFamily="'Roboto Mono', monospace"
+              fontFamily="'JetBrains Mono', monospace"
             >
               {tick}%
             </text>
@@ -211,7 +211,7 @@ const MultiLineChart: React.FC<MultiLineChartProps> = ({
             textAnchor="middle"
             fill="#8A8F98"
             fontSize={8}
-            fontFamily="'Roboto Mono', monospace"
+            fontFamily="'JetBrains Mono', monospace"
           >
             {m}
           </text>

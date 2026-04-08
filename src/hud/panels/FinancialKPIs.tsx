@@ -96,7 +96,7 @@ const FinancialKPIs: React.FC = () => {
           >
             <span
               style={{
-                fontFamily: "'Roboto Mono', monospace",
+                fontFamily: "'JetBrains Mono', monospace",
                 fontSize: isMobile ? 12 : 9,
                 fontWeight: 400,
                 textTransform: 'uppercase',

@@ -163,7 +163,7 @@ const BarChart: React.FC<BarChartProps> = ({ bars, height = 150 }) => {
             style={{
               width: BAR_WIDTH,
               textAlign: 'center',
-              fontFamily: "'Roboto Mono', monospace",
+              fontFamily: "'JetBrains Mono', monospace",
               fontSize: 8,
               color: '#8A8F98',
               whiteSpace: 'nowrap',
