@@ -1,8 +1,8 @@
 import React from 'react';
 import { financialKPIs } from '../../data/mockData';
 import { formatCurrency, formatPercent } from '../../utils/formatCurrency';
+type KPIKey = keyof typeof financialKPIs;
 import Sparkline from '../shared/Sparkline';
-import QoQGrowth from './QoQGrowth';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 
@@ -14,43 +14,31 @@ interface KpiRow {
   isPercent: boolean;
 }
 
-const kpiRows: KpiRow[] = [
-  {
-    label: 'REVENUE',
-    value: formatCurrency(financialKPIs.revenue.value, financialKPIs.revenue.unit, financialKPIs.revenue.currency),
-    color: financialKPIs.revenue.color,
-    sparkline: financialKPIs.revenue.sparkline,
-    isPercent: false,
-  },
-  {
-    label: 'GROSS MARGIN',
-    value: formatPercent(financialKPIs.grossMargin.value),
-    color: financialKPIs.grossMargin.color,
-    sparkline: financialKPIs.grossMargin.sparkline,
-    isPercent: true,
-  },
-  {
-    label: 'EBITDA',
-    value: formatCurrency(financialKPIs.ebitda.value, financialKPIs.ebitda.unit, financialKPIs.ebitda.currency),
-    color: financialKPIs.ebitda.color,
-    sparkline: financialKPIs.ebitda.sparkline,
-    isPercent: false,
-  },
-  {
-    label: 'EBITDA MARGIN',
-    value: formatPercent(financialKPIs.ebitdaMargin.value),
-    color: financialKPIs.ebitdaMargin.color,
-    sparkline: financialKPIs.ebitdaMargin.sparkline,
-    isPercent: true,
-  },
-  {
-    label: 'NET INCOME',
-    value: formatCurrency(financialKPIs.netIncome.value, financialKPIs.netIncome.unit, financialKPIs.netIncome.currency),
-    color: financialKPIs.netIncome.color,
-    sparkline: financialKPIs.netIncome.sparkline,
-    isPercent: false,
-  },
-];
+/* Ordered: Revenue → Other Income → Total Income → Total Expenses → Net Profit → Net Margin */
+const kpiKeyOrder: KPIKey[] = ['revenue', 'otherIncome', 'totalIncome', 'totalExpenses', 'netProfit', 'netMargin'];
+
+const kpiLabels: Record<KPIKey, string> = {
+  revenue: 'REVENUE',
+  otherIncome: 'OTHER INCOME',
+  totalIncome: 'TOTAL INCOME',
+  totalExpenses: 'TOTAL EXPENSES',
+  netProfit: 'NET PROFIT',
+  netMargin: 'NET MARGIN',
+};
+
+const kpiRows: KpiRow[] = kpiKeyOrder.map((key) => {
+  const kpi = financialKPIs[key];
+  const isPercent = kpi.unit === '%';
+  return {
+    label: kpiLabels[key],
+    value: isPercent
+      ? formatPercent(kpi.value)
+      : formatCurrency(kpi.value, kpi.unit, kpi.currency),
+    color: kpi.color,
+    sparkline: kpi.sparkline,
+    isPercent,
+  };
+});
 
 const FinancialKPIs: React.FC = () => {
   const { mapColor } = useTheme();
@@ -87,72 +75,58 @@ const FinancialKPIs: React.FC = () => {
         FINANCIAL KPIs
       </div>
 
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {/* Left: KPI rows */}
-        <div style={{ flex: 3, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {kpiRows.map((kpi, index) => (
-            <div
-              key={kpi.label}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {kpiRows.map((kpi, index) => (
+          <div
+            key={kpi.label}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: isMobile ? 6 : 8,
+              ...(isMobile ? { minHeight: 40 } : {}),
+              borderBottom:
+                index < kpiRows.length - 1
+                  ? '1px solid var(--divider)'
+                  : 'none',
+              whiteSpace: isMobile ? undefined : 'nowrap',
+              overflow: 'hidden',
+            }}
+            className="fade-in-up"
+          >
+            <span
               style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: isMobile ? 6 : 8,
-                ...(isMobile ? { minHeight: 40 } : {}),
-                borderBottom:
-                  index < kpiRows.length - 1
-                    ? '1px solid var(--divider)'
-                    : 'none',
-                whiteSpace: isMobile ? undefined : 'nowrap',
-                overflow: 'hidden',
+                fontFamily: "'Roboto Mono', monospace",
+                fontSize: isMobile ? 12 : 9,
+                fontWeight: 400,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--text-muted)',
+                minWidth: isMobile ? 80 : 105,
+                flexShrink: 0,
               }}
-              className="fade-in-up"
             >
-              <span
-                style={{
-                  fontFamily: "'Roboto Mono', monospace",
-                  fontSize: isMobile ? 12 : 9,
-                  fontWeight: 400,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: 'var(--text-muted)',
-                  minWidth: isMobile ? 80 : 105,
-                  flexShrink: 0,
-                }}
-              >
-                {kpi.label}:
-              </span>
+              {kpi.label}:
+            </span>
 
-              <span
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: kpi.isPercent ? (isMobile ? 18 : 20) : (isMobile ? 22 : 28),
-                  fontWeight: 700,
-                  color: mapColor(kpi.color),
-                  filter: `drop-shadow(0 0 8px ${mapColor(kpi.color)}66)`,
-                  lineHeight: 1,
-                }}
-              >
-                {kpi.value}
-              </span>
+            <span
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: kpi.isPercent ? (isMobile ? 18 : 20) : (isMobile ? 22 : 28),
+                fontWeight: 700,
+                color: mapColor(kpi.color),
+                filter: `drop-shadow(0 0 8px ${mapColor(kpi.color)}66)`,
+                lineHeight: 1,
+              }}
+            >
+              {kpi.value}
+            </span>
 
-              {kpi.sparkline && (
-                <Sparkline data={kpi.sparkline} color={mapColor(kpi.color)} width={isMobile ? 50 : 60} height={isMobile ? 18 : 22} animated />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Separator */}
-        {isMobile
-          ? <div style={{ height: 1, background: 'var(--border-subtle)', flexShrink: 0 }} />
-          : <div style={{ width: 1, background: 'var(--border-subtle)', flexShrink: 0 }} />
-        }
-
-        {/* Right: QoQ Growth */}
-        <div style={{ flex: 1.2, minWidth: 0, overflow: 'hidden', ...(isMobile ? { paddingTop: 12 } : {}) }}>
-          <QoQGrowth isMobile={isMobile} />
-        </div>
+            {kpi.sparkline && (
+              <Sparkline data={kpi.sparkline} color={mapColor(kpi.color)} width={isMobile ? 50 : 60} height={isMobile ? 18 : 22} animated />
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -161,22 +161,7 @@ const Header: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 16, flexShrink: 0 }}>
         <StatusDots isMobile={isMobile} />
         <ThemeToggleButton isDark={isDark} toggle={toggle} isMobile={isMobile} />
-        {!isMobile && (
-          <>
-            <CalendarIcon />
-            <span
-              style={{
-                fontFamily: "'Roboto Mono', monospace",
-                fontSize: SIZES.statusDate,
-                fontWeight: 400,
-                color: 'var(--text-muted)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              07 APR 2026
-            </span>
-          </>
-        )}
+        {/* Date removed — stale hardcoded dates are misleading */}
       </div>
     </header>
   );

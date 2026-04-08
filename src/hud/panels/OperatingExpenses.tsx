@@ -263,7 +263,7 @@ const OperatingExpenses: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        OPERATING EXPENSES
+        EXPENSES
       </div>
 
       {/* Two-column layout */}

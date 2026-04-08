@@ -12,33 +12,28 @@ const QoQGrowth: React.FC<QoQGrowthProps> = ({ isMobile = false }) => {
 
   const growthItems = [
     { label: qoqGrowth.revenue.label, value: qoqGrowth.revenue.change, color: qoqGrowth.revenue.color },
-    { label: qoqGrowth.gross.label, value: qoqGrowth.gross.change, color: qoqGrowth.gross.color },
-    { label: qoqGrowth.ebitda.label, value: qoqGrowth.ebitda.change, color: qoqGrowth.ebitda.color },
+    { label: qoqGrowth.opex.label, value: qoqGrowth.opex.change, color: qoqGrowth.opex.color },
+    { label: qoqGrowth.netPnl.label, value: qoqGrowth.netPnl.change, color: qoqGrowth.netPnl.color },
   ];
 
   const metricItems = [
     {
-      label: additionalMetrics.operatingCashFlow.label,
+      label: additionalMetrics.totalExpenses.label,
       value: formatCurrency(
-        additionalMetrics.operatingCashFlow.value,
-        additionalMetrics.operatingCashFlow.unit,
-        additionalMetrics.operatingCashFlow.currency
+        additionalMetrics.totalExpenses.value,
+        additionalMetrics.totalExpenses.unit,
+        additionalMetrics.totalExpenses.currency
       ),
-      color: additionalMetrics.operatingCashFlow.color,
+      color: additionalMetrics.totalExpenses.color,
     },
     {
-      label: additionalMetrics.freeCashFlow.label,
+      label: additionalMetrics.otherIncome.label,
       value: formatCurrency(
-        additionalMetrics.freeCashFlow.value,
-        additionalMetrics.freeCashFlow.unit,
-        additionalMetrics.freeCashFlow.currency
+        additionalMetrics.otherIncome.value,
+        additionalMetrics.otherIncome.unit,
+        additionalMetrics.otherIncome.currency
       ),
-      color: additionalMetrics.freeCashFlow.color,
-    },
-    {
-      label: additionalMetrics.evEbitda.label,
-      value: String(additionalMetrics.evEbitda.value),
-      color: additionalMetrics.evEbitda.color,
+      color: additionalMetrics.otherIncome.color,
     },
   ];
 

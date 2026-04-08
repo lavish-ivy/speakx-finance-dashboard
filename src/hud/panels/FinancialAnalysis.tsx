@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useId } from 'react';
-import { COLORS } from '../../theme/colors';
+import React, { useState, useEffect } from 'react';
 import { FONTS, SIZES } from '../../theme/typography';
 import { financialAnalysis } from '../../data/mockData';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -12,7 +11,7 @@ const glassCard: React.CSSProperties = {
   borderRadius: 8,
   backdropFilter: 'blur(10px)',
   WebkitBackdropFilter: 'blur(10px)',
-  padding: '16px 20px',
+  padding: '12px 16px',
   height: '100%',
   overflow: 'hidden',
   boxSizing: 'border-box',
@@ -35,7 +34,7 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 }
 
-/* ── Donut Chart with center label ──────────────────── */
+/* ── Donut Chart — P&L waterfall ───────────────────── */
 
 function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; isMobile: boolean }) {
   const [hovered, setHovered] = useState<number | null>(null);
@@ -73,11 +72,11 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
     return seg;
   });
 
-  const size = 115;
+  const size = isMobile ? 115 : 95;
   const cx = size / 2;
   const cy = size / 2;
-  const outerR = 48;
-  const innerR = 33;
+  const outerR = isMobile ? 48 : 40;
+  const innerR = isMobile ? 33 : 27;
   const midR = (outerR + innerR) / 2;
   const strokeW = outerR - innerR;
 
@@ -89,7 +88,7 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
           const isHov = hovered === i;
           const midAngle = (seg.startAngle + seg.endAngle) / 2;
           const pushRad = ((midAngle - 90) * Math.PI) / 180;
-          const pushDist = isHov ? 4 : 0;
+          const pushDist = isHov ? 3 : 0;
           const tx = Math.cos(pushRad) * pushDist;
           const ty = Math.sin(pushRad) * pushDist;
 
@@ -119,7 +118,7 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
         })}
       </svg>
 
-      {/* Center label */}
+      {/* Center label — Net Profit */}
       <div
         style={{
           position: 'absolute',
@@ -137,64 +136,110 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
         <div
           style={{
             fontFamily: FONTS.data.family,
-            fontSize: isMobile ? 22 : 20,
+            fontSize: isMobile ? 16 : 13,
             fontWeight: 700,
-            color: 'var(--text-primary)',
+            color: mapColor('#FFD700'),
             lineHeight: 1,
-            filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.2))',
+            filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.3))',
           }}
         >
-          ₹{total.toFixed(1)} Cr
+          ₹{financialAnalysis.donut[3].value.toFixed(2)} Cr
         </div>
         <div
           style={{
             fontFamily: FONTS.label.family,
-            fontSize: isMobile ? 11 : 7,
+            fontSize: isMobile ? 8 : 6,
             color: 'var(--text-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
-            marginTop: 2,
+            marginTop: 1,
           }}
         >
-          TOTAL
+          NET PROFIT
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Mini Sparkline ─────────────────────────────────── */
+/* ── Expense category row with mini bar ────────────── */
 
-function MiniSparkline({ mapColor, height = 24 }: { mapColor: (c: string) => string; height?: number }) {
-  const id = useId();
-  const { sparkline } = financialAnalysis.revenueComposition;
-  const w = 140;
-  const h = height;
-  const padY = 2;
+interface ExpenseCatRowProps {
+  category: string;
+  pct: number;
+  amount: number;
+  color: string;
+  maxPct: number;
+  index: number;
+  isMobile: boolean;
+  mapColor: (c: string) => string;
+}
 
-  const min = Math.min(...sparkline);
-  const max = Math.max(...sparkline);
-  const range = max - min || 1;
-
-  const points = sparkline.map((v, i) => ({
-    x: (i / (sparkline.length - 1)) * w,
-    y: h - padY - ((v - min) / range) * (h - padY * 2),
-  }));
-
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const areaPath = `${linePath} L ${w} ${h} L 0 ${h} Z`;
-
+function ExpenseCatRow({ category, pct, amount, color, maxPct, index, isMobile, mapColor }: ExpenseCatRowProps) {
+  const mappedColor = mapColor(color);
   return (
-    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={`sparkFill-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={mapColor(COLORS.cyan)} stopOpacity={0.25} />
-          <stop offset="100%" stopColor={mapColor(COLORS.cyan)} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#sparkFill-${id})`} />
-      <path d={linePath} fill="none" stroke={mapColor(COLORS.cyan)} strokeWidth={1.5} strokeLinejoin="round" />
-    </svg>
+    <div
+      className="fade-in"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1,
+        animationDelay: `${index * 0.06}s`,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div
+          style={{
+            width: 2,
+            height: isMobile ? 12 : 8,
+            borderRadius: 1,
+            background: mappedColor,
+            boxShadow: `0 0 3px ${mappedColor}60`,
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            fontFamily: FONTS.body.family,
+            fontSize: isMobile ? 10 : 7,
+            color: 'var(--text-secondary)',
+            flex: 1,
+            lineHeight: 1.2,
+          }}
+        >
+          {category}
+        </span>
+        <span
+          style={{
+            fontFamily: FONTS.data.family,
+            fontSize: isMobile ? 10 : 8,
+            fontWeight: 700,
+            color: mappedColor,
+          }}
+        >
+          {pct}%
+        </span>
+      </div>
+      <div
+        style={{
+          height: 1.5,
+          borderRadius: 1,
+          background: 'var(--chart-gridline)',
+          marginLeft: 6,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${(pct / maxPct) * 100}%`,
+            height: '100%',
+            borderRadius: 1,
+            background: `linear-gradient(90deg, ${mappedColor}, ${mappedColor}60)`,
+            boxShadow: `0 0 4px ${mappedColor}40`,
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -211,7 +256,8 @@ export default function FinancialAnalysis() {
     percentage: Math.round((d.value / total) * 100),
   }));
 
-  const { total: revTotal, label: revLabel, split } = financialAnalysis.revenueComposition;
+  const { total: expTotal, label: expLabel, categories } = financialAnalysis.expenseComposition;
+  const maxPct = Math.max(...categories.map((c) => c.pct));
 
   return (
     <div
@@ -234,98 +280,104 @@ export default function FinancialAnalysis() {
           textTransform: FONTS.header.transform,
           letterSpacing: FONTS.header.letterSpacing,
           color: 'var(--text-primary)',
-          marginBottom: 12,
+          marginBottom: 8,
           flexShrink: 0,
         }}
       >
-        FINANCIAL ANALYSIS &amp; PROJECTIONS
+        P&amp;L OVERVIEW
       </div>
 
-      {/* 3-column layout: Donut | Legend | Revenue Composition */}
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, flex: 1, minHeight: 0, overflow: isMobile ? 'auto' : 'hidden', alignItems: isMobile ? 'center' : undefined }}>
-        {/* Col 1: Donut chart */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : undefined, flexShrink: 0, ...(isMobile ? { alignSelf: 'center' } : {}) }}>
-          <DonutChart mapColor={mapColor} isMobile={isMobile} />
-        </div>
-
-        {/* Col 2: Legend items */}
+      {/* Two-column layout: Donut + Legend | Expense Composition */}
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 10, flex: 1, minHeight: 0, overflow: isMobile ? 'auto' : 'hidden' }}>
+        {/* Left side: Donut + Legend stacked vertically */}
         <div
           style={{
-            flex: 1,
-            minWidth: 0,
             display: 'flex',
-            flexDirection: isMobile ? 'row' : 'column',
-            flexWrap: isMobile ? 'wrap' : undefined,
-            justifyContent: 'center',
-            gap: isMobile ? 12 : 10,
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: 'center',
+            gap: isMobile ? 10 : 10,
+            flex: isMobile ? undefined : 1,
+            minWidth: 0,
           }}
         >
-          {segments.map((seg, i) => (
-            <div
-              key={i}
-              className="fade-in"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                animationDelay: `${i * 0.1}s`,
-              }}
-            >
+          {/* Donut */}
+          <DonutChart mapColor={mapColor} isMobile={isMobile} />
+
+          {/* Legend */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'row' : 'column',
+              flexWrap: isMobile ? 'wrap' : undefined,
+              justifyContent: 'center',
+              gap: isMobile ? 10 : 6,
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            {segments.map((seg, i) => (
               <div
+                key={i}
+                className="fade-in"
                 style={{
-                  width: 3,
-                  height: 18,
-                  borderRadius: 2,
-                  background: `linear-gradient(180deg, ${mapColor(seg.color)}, ${mapColor(seg.color)}60)`,
-                  boxShadow: `0 0 6px ${mapColor(seg.color)}50`,
-                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  animationDelay: `${i * 0.1}s`,
                 }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
+              >
                 <div
                   style={{
-                    fontFamily: FONTS.body.family,
-                    fontSize: isMobile ? 12 : 10,
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.2,
-                    marginBottom: 2,
+                    width: 3,
+                    height: 14,
+                    borderRadius: 2,
+                    background: `linear-gradient(180deg, ${mapColor(seg.color)}, ${mapColor(seg.color)}60)`,
+                    boxShadow: `0 0 4px ${mapColor(seg.color)}50`,
+                    flexShrink: 0,
                   }}
-                >
-                  {seg.segment}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
                     style={{
-                      fontFamily: FONTS.data.family,
-                      fontSize: isMobile ? 15 : 15,
-                      fontWeight: 700,
-                      color: mapColor(seg.color),
-                      filter: `drop-shadow(0 0 6px ${mapColor(seg.color)}40)`,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {formatCurrency(seg.value, seg.unit)}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: FONTS.label.family,
+                      fontFamily: FONTS.body.family,
                       fontSize: isMobile ? 11 : 8,
-                      color: mapColor(seg.color),
-                      opacity: 0.6,
-                      background: `${mapColor(seg.color)}12`,
-                      padding: '1px 5px',
-                      borderRadius: 3,
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.1,
                     }}
                   >
-                    {seg.percentage}%
-                  </span>
+                    {seg.segment}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span
+                      style={{
+                        fontFamily: FONTS.data.family,
+                        fontSize: isMobile ? 14 : 12,
+                        fontWeight: 700,
+                        color: mapColor(seg.color),
+                        filter: `drop-shadow(0 0 4px ${mapColor(seg.color)}40)`,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {formatCurrency(seg.value, seg.unit)}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: FONTS.label.family,
+                        fontSize: isMobile ? 10 : 7,
+                        color: mapColor(seg.color),
+                        opacity: 0.6,
+                      }}
+                    >
+                      {seg.percentage}%
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Vertical divider */}
+        {/* Divider */}
         <div
           style={{
             width: isMobile ? '100%' : 1,
@@ -335,81 +387,60 @@ export default function FinancialAnalysis() {
           }}
         />
 
-        {/* Col 3: Revenue Composition */}
+        {/* Right side: Expense Composition */}
         <div
           style={{
-            flex: 1,
+            flex: isMobile ? undefined : 1,
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            gap: 6,
+            gap: 4,
           }}
         >
           <div
             style={{
               fontFamily: FONTS.label.family,
-              fontSize: isMobile ? 12 : 9,
+              fontSize: isMobile ? 11 : 8,
               color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
+              flexShrink: 0,
             }}
           >
-            Revenue Composition
+            {expLabel}
           </div>
 
           <div
             style={{
               fontFamily: FONTS.data.family,
-              fontSize: isMobile ? 20 : 22,
+              fontSize: isMobile ? 18 : 16,
               fontWeight: 700,
-              color: mapColor(COLORS.cyan),
-              filter: `drop-shadow(0 0 10px ${mapColor(COLORS.cyan)}50)`,
+              color: mapColor(expTotal.color),
+              filter: `drop-shadow(0 0 8px ${mapColor(expTotal.color)}50)`,
               lineHeight: 1,
+              marginBottom: 2,
+              flexShrink: 0,
             }}
           >
-            {formatCurrency(revTotal.value, revTotal.unit, revTotal.currency)}
+            {formatCurrency(expTotal.value, expTotal.unit, expTotal.currency)}
           </div>
 
-          <div
-            style={{
-              fontFamily: FONTS.body.family,
-              fontSize: isMobile ? 11 : 9,
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-            }}
-          >
-            {revLabel}
-          </div>
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            {split.map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: mapColor(s.color),
-                    boxShadow: `0 0 6px ${mapColor(s.color)}80`,
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: FONTS.data.family,
-                    fontSize: isMobile ? 12 : 11,
-                    color: mapColor(s.color),
-                    fontWeight: 700,
-                  }}
-                >
-                  {s.type} {s.pct}%
-                </span>
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {categories.map((cat, i) => (
+              <ExpenseCatRow
+                key={cat.category}
+                category={cat.category}
+                pct={cat.pct}
+                amount={cat.amount}
+                color={cat.color}
+                maxPct={maxPct}
+                index={i}
+                isMobile={isMobile}
+                mapColor={mapColor}
+              />
             ))}
           </div>
-
-          <MiniSparkline mapColor={mapColor} height={isMobile ? 36 : 24} />
         </div>
       </div>
     </div>

@@ -19,7 +19,6 @@ const glassCard: React.CSSProperties = {
   transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
 };
 
-
 interface TooltipData {
   x: number;
   y: number;
@@ -29,6 +28,7 @@ interface TooltipData {
   seriesName: string;
 }
 
+/* Y-axis range for absolute ₹ Cr values */
 const CHART = {
   width: 500,
   height: 200,
@@ -36,9 +36,9 @@ const CHART = {
   padRight: 8,
   padTop: 10,
   padBottom: 24,
-  yMin: -150,
-  yMax: 100,
-  yStep: 50,
+  yMin: -3,
+  yMax: 7,
+  yStep: 1,
 };
 
 function getChartX(i: number, count: number): number {
@@ -72,8 +72,8 @@ function buildSmoothPath(points: { x: number; y: number }[]): string {
 function buildAreaPath(points: { x: number; y: number }[]): string {
   const linePath = buildSmoothPath(points);
   if (!linePath) return '';
-  const bottom = CHART.height - CHART.padBottom;
-  return `${linePath} L ${points[points.length - 1].x} ${bottom} L ${points[0].x} ${bottom} Z`;
+  const zeroY = getChartY(0);
+  return `${linePath} L ${points[points.length - 1].x} ${zeroY} L ${points[0].x} ${zeroY} Z`;
 }
 
 export default function MarginTrends() {
@@ -97,8 +97,10 @@ export default function MarginTrends() {
   }, []);
 
   const { months, series } = marginTrends;
-  const yTicks = [];
-  for (let v = CHART.yMin; v <= CHART.yMax; v += CHART.yStep) {
+
+  /* Show gridlines at every 2 Cr for readability (skip every-1 to avoid clutter) */
+  const yTicks: number[] = [];
+  for (let v = CHART.yMin; v <= CHART.yMax; v += 2) {
     yTicks.push(v);
   }
 
@@ -143,7 +145,7 @@ export default function MarginTrends() {
             color: 'var(--text-primary)',
           }}
         >
-          MARGIN TRENDS
+          REVENUE vs EXPENSES
         </div>
 
         {/* Legend */}
@@ -202,9 +204,10 @@ export default function MarginTrends() {
                   y1={y}
                   x2={CHART.width - CHART.padRight}
                   y2={y}
-                  strokeDasharray="4 3"
-                  strokeWidth={1}
-                  style={{ stroke: 'var(--chart-gridline)' }}
+                  strokeDasharray={v === 0 ? undefined : '4 3'}
+                  strokeWidth={v === 0 ? 1.2 : 1}
+                  style={{ stroke: v === 0 ? 'var(--text-muted)' : 'var(--chart-gridline)' }}
+                  opacity={v === 0 ? 0.5 : 1}
                 />
                 <text
                   x={CHART.padLeft - 6}
@@ -216,7 +219,7 @@ export default function MarginTrends() {
                     fill: 'var(--text-muted)',
                   }}
                 >
-                  {v}%
+                  {v}
                 </text>
               </g>
             );
@@ -239,8 +242,8 @@ export default function MarginTrends() {
             </text>
           ))}
 
-          {/* Area fills */}
-          {seriesPoints.map((pts, i) => {
+          {/* Area fills (only for Revenue and Expenses, skip Net Profit) */}
+          {seriesPoints.slice(0, 2).map((pts, i) => {
             const visibleCount = Math.ceil(pts.length * animProgress);
             const visiblePts = pts.slice(0, visibleCount);
             if (visiblePts.length < 2) return null;
@@ -264,9 +267,10 @@ export default function MarginTrends() {
                 d={buildSmoothPath(visiblePts)}
                 fill="none"
                 stroke={mapColor(series[i].color)}
-                strokeWidth={2}
+                strokeWidth={i === 2 ? 1.5 : 2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray={i === 2 ? '6 3' : undefined}
               />
             );
           })}
@@ -334,7 +338,7 @@ export default function MarginTrends() {
               <rect
                 x={tooltip.x + 8}
                 y={tooltip.y - 22}
-                width={70}
+                width={90}
                 height={22}
                 rx={4}
                 stroke={tooltip.color}
@@ -351,7 +355,7 @@ export default function MarginTrends() {
                   fontWeight: 600,
                 }}
               >
-                {tooltip.month}: {tooltip.value}%
+                {tooltip.month}: ₹{tooltip.value.toFixed(2)} Cr
               </text>
             </>
           )}
