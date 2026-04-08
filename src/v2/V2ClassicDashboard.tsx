@@ -382,6 +382,12 @@ export default function V2ClassicDashboard() {
   const { isMobile, isTablet } = useResponsive();
   const col = isMobile ? '1fr' : isTablet ? '1fr 1fr' : undefined;
 
+  useEffect(() => {
+    const els = [document.documentElement, document.body, document.getElementById('root')].filter(Boolean) as HTMLElement[];
+    els.forEach(el => el.classList.add('scrollable'));
+    return () => { els.forEach(el => el.classList.remove('scrollable')); };
+  }, []);
+
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: colors.bgPrimary, color: colors.textPrimary, fontFamily: typography.body, paddingBottom: 80 }}>
       <GridFloor />
