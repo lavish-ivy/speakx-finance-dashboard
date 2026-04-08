@@ -22,15 +22,14 @@ const HUD = () => {
     <div style={{
       position: 'relative',
       width: '100%',
-      height: isMobile ? 'auto' : '100vh',
-      minHeight: isMobile ? '100vh' : undefined,
+      minHeight: '100vh',
       zIndex: 10,
       pointerEvents: 'auto',
       display: 'flex',
       flexDirection: 'column',
       padding,
+      paddingBottom: '80px',
       boxSizing: 'border-box',
-      overflow: 'hidden',
     }}>
       <Header />
       <div style={{
