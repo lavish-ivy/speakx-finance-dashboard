@@ -68,18 +68,19 @@ function CashFlowGroupedChart() {
   ];
 
   return (
-    <div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{
         fontFamily: "'Orbitron', monospace",
         fontSize: 10,
         color: 'var(--text-muted)',
         letterSpacing: '0.1em',
-        marginBottom: 8,
+        marginBottom: 4,
         textTransform: 'uppercase',
+        flexShrink: 0,
       }}>
         Cash Flow Components
       </div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 6 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 4, flexShrink: 0 }}>
         {series.map((s) => (
           <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
@@ -87,7 +88,8 @@ function CashFlowGroupedChart() {
           </div>
         ))}
       </div>
-      <svg viewBox={`0 0 ${w} ${h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
         {/* Zero line */}
         <line x1={padL} y1={zeroY} x2={padL + cW} y2={zeroY} stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
 
@@ -151,6 +153,7 @@ function CashFlowGroupedChart() {
             fill="var(--text-muted)" fontSize={7} fontFamily="'JetBrains Mono', monospace">{m}</text>
         ))}
       </svg>
+      </div>
     </div>
   );
 }
@@ -191,18 +194,20 @@ function LiquidityTrendChart() {
   const tickVals = Array.from({ length: ticks }, (_, i) => minVal + (range / (ticks - 1)) * i);
 
   return (
-    <div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{
         fontFamily: "'Orbitron', monospace",
         fontSize: 10,
         color: 'var(--text-muted)',
         letterSpacing: '0.1em',
-        marginBottom: 8,
+        marginBottom: 4,
         textTransform: 'uppercase',
+        flexShrink: 0,
       }}>
         Total Liquidity Trend
       </div>
-      <svg viewBox={`0 0 ${w} ${h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
         <defs>
           <linearGradient id="liqAreaGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#BF5AF2" stopOpacity={0.3} />
@@ -259,6 +264,7 @@ function LiquidityTrendChart() {
             fill="var(--text-muted)" fontSize={7} fontFamily="'JetBrains Mono', monospace">{m}</text>
         ))}
       </svg>
+      </div>
     </div>
   );
 }
@@ -305,8 +311,10 @@ export default function CashPage() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-        gap: 12,
-        marginBottom: 14,
+        gap: 10,
+        marginBottom: 10,
+        flex: isMobile ? undefined : 1,
+        minHeight: isMobile ? undefined : 0,
       }}>
         <GlassCard>
           <CashFlowGroupedChart />
@@ -316,11 +324,13 @@ export default function CashPage() {
         </GlassCard>
       </div>
 
-      <DataTable
-        headers={tableHeaders}
-        rows={cfRows}
-        formatValue={(v) => formatCr(v)}
-      />
+      <div style={{ flexShrink: 0 }}>
+        <DataTable
+          headers={tableHeaders}
+          rows={cfRows}
+          formatValue={(v) => formatCr(v)}
+        />
+      </div>
     </PageShell>
   );
 }
