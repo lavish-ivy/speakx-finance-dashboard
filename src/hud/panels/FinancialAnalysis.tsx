@@ -72,11 +72,11 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
     return seg;
   });
 
-  const size = isMobile ? 115 : 95;
+  const size = isMobile ? 115 : 120;
   const cx = size / 2;
   const cy = size / 2;
-  const outerR = isMobile ? 48 : 40;
-  const innerR = isMobile ? 33 : 27;
+  const outerR = isMobile ? 48 : 50;
+  const innerR = isMobile ? 33 : 34;
   const midR = (outerR + innerR) / 2;
   const strokeW = outerR - innerR;
 
@@ -136,7 +136,7 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
         <div
           style={{
             fontFamily: FONTS.data.family,
-            fontSize: isMobile ? 16 : 13,
+            fontSize: isMobile ? 16 : 15,
             fontWeight: 700,
             color: mapColor('#FFD700'),
             lineHeight: 1,
@@ -148,7 +148,7 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
         <div
           style={{
             fontFamily: FONTS.label.family,
-            fontSize: isMobile ? 8 : 6,
+            fontSize: isMobile ? 8 : 7,
             color: 'var(--text-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
