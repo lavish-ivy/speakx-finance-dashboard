@@ -116,7 +116,7 @@ function CashFlowGroupedChart() {
                 const barY = v >= 0 ? toY(v) : zeroY;
                 const xOff = (si - 1) * (barW + 2);
                 return (
-                  <motion.rect
+                  <rect
                     key={si}
                     x={groupCx + xOff - barW / 2}
                     y={barY}
@@ -125,9 +125,6 @@ function CashFlowGroupedChart() {
                     rx={1.5}
                     fill={s.color}
                     opacity={0.8}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.8 }}
-                    transition={{ delay: i * 0.04 + si * 0.02, duration: 0.4 }}
                   />
                 );
               })}

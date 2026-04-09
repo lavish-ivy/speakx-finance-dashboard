@@ -134,7 +134,7 @@ function RevenueEBITDAChart() {
           const barH = Math.abs(v / range) * cH;
           const barY = v >= 0 ? toY(v) : zeroY;
           return (
-            <motion.rect
+            <rect
               key={`bar-${i}`}
               x={cx - barW / 2}
               y={barY}
@@ -142,9 +142,7 @@ function RevenueEBITDAChart() {
               height={barH}
               rx={2}
               fill="url(#revBarGrad)"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: hoverIdx === i ? 1 : 0.75 }}
-              transition={{ delay: i * 0.05, duration: 0.4 }}
+              opacity={hoverIdx === i ? 1 : 0.75}
               onMouseEnter={() => setHoverIdx(i)}
               onMouseLeave={() => setHoverIdx(null)}
               style={{ cursor: 'crosshair' }}
@@ -278,16 +276,14 @@ function PATChart() {
           const fillColor = v >= 0 ? '#00FFCC' : '#FF453A';
           return (
             <g key={i}>
-              <motion.rect
+              <rect
                 x={cx - barW / 2}
                 y={barY}
                 width={barW}
                 height={barH}
                 rx={2}
                 fill={fillColor}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.75 }}
-                transition={{ delay: i * 0.05, duration: 0.4 }}
+                opacity={0.75}
               />
               {/* Value label */}
               <text
@@ -409,7 +405,7 @@ function OpExStackedChart() {
                 const segY = toY(cumY + s.data[colIdx]);
                 cumY += s.data[colIdx];
                 return (
-                  <motion.rect
+                  <rect
                     key={sIdx}
                     x={cx - barW / 2}
                     y={segY}
@@ -417,9 +413,7 @@ function OpExStackedChart() {
                     height={segH}
                     fill={s.color}
                     rx={sIdx === series.length - 1 ? 2 : 0}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.8 }}
-                    transition={{ delay: colIdx * 0.04 + sIdx * 0.02, duration: 0.4 }}
+                    opacity={0.8}
                   />
                 );
               })}
