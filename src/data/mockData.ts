@@ -4,33 +4,33 @@
  * All amounts are in Indian Rupees.
  * Unit key:  'Cr' = Crores (10M),  'L' = Lakhs (100K)
  *
- * Data refreshed: 2026-04-07 from group-level Trial Balance + exploded sub-accounts.
+ * Data refreshed: 2026-04-09 from group-level Trial Balance (live Tally sync).
  * Cash flow computed via direct method from actual cash balance changes.
  */
 
 // ── Monthly P&L (Apr-25 to Mar-26) ─────────────────────────────────────────
 
 /** Monthly revenue in Crores */
-const monthlyRevenue = [4.39, 3.88, 4.27, 4.65, 4.43, 4.05, 3.66, 3.96, 4.27, 4.06, 3.39, 1.68];
+const monthlyRevenue = [4.39, 3.88, 4.27, 4.65, 4.43, 4.05, 3.66, 3.96, 4.27, 4.06, 3.39, 1.90];
 
 /** Monthly total expenses (Direct + Indirect) in Crores */
-const monthlyExpenses = [1.89, 2.59, 3.40, 3.58, 3.10, 3.34, 3.55, 5.75, 4.79, 4.88, 4.65, 5.32];
+const monthlyExpenses = [1.90, 2.60, 3.40, 3.57, 3.09, 3.34, 3.55, 5.75, 4.79, 4.87, 4.65, 5.70];
 
-/** Monthly net profit in Crores */
-const monthlyNetProfit = [2.49, 1.39, 0.89, 1.09, 1.38, 0.74, 0.13, -1.78, -0.10, -0.71, -1.20, -2.25];
+/** Monthly net profit (EBITDA proxy) in Crores */
+const monthlyNetProfit = [2.49, 1.39, 0.89, 1.09, 1.38, 0.74, 0.13, -1.78, -0.10, -0.71, -1.20, -2.36];
 
 /** Monthly net margin % */
-const monthlyNetMarginPct = [56.9, 35.9, 20.9, 23.4, 31.2, 18.3, 3.5, -44.9, -2.3, -17.4, -35.4, -134.0];
+const monthlyNetMarginPct = [56.7, 35.8, 20.8, 23.4, 31.2, 18.3, 3.5, -44.9, -2.3, -17.5, -35.4, -124.2];
 
 // ── YTD Totals ──────────────────────────────────────────────────────────────
 
-const ytdRevenue     = 46.68;   // Cr
+const ytdRevenue     = 46.90;   // Cr
 const ytdDirectExp   =  0.66;   // Cr
-const ytdIndirectExp = 46.17;   // Cr
-const ytdTotalExp    = 46.83;   // Cr  (direct + indirect)
-const ytdOtherIncome =  2.23;   // Cr
-const ytdNetProfit   =  2.09;   // Cr
-const ytdNetMargin   =  4.5;    // %
+const ytdIndirectExp = 46.55;   // Cr
+const ytdTotalExp    = 47.21;   // Cr  (direct + indirect)
+const ytdOtherIncome =  2.29;   // Cr
+const ytdNetProfit   =  1.98;   // Cr
+const ytdNetMargin   =  4.2;    // %
 
 // ── OpEx Breakdown (real Tally sub-accounts, exploded TB) ───────────────────
 
@@ -86,7 +86,7 @@ export const operatingExpenses = {
     { label: 'Q1', value: 7.89,  unit: 'Cr', color: '#00FFCC' },
     { label: 'Q2', value: 10.01, unit: 'Cr', color: '#FF9F0A' },
     { label: 'Q3', value: 14.09, unit: 'Cr', color: '#BF5AF2' },
-    { label: 'Q4', value: 14.84, unit: 'Cr', color: '#64D2FF' },
+    { label: 'Q4', value: 15.22, unit: 'Cr', color: '#64D2FF' },
   ],
   breakdown: opexCategories,
 };
@@ -127,13 +127,13 @@ export const marginTrends = {
  */
 export const cashFlowData = {
   ytd: {
-    ocf:       { label: 'Operating CF',    value: 11.80, unit: 'Cr', currency: '₹', color: '#00FFCC' },
-    netCF:     { label: 'Net Cash Flow',   value: 6.12,  unit: 'Cr', currency: '₹', color: '#00FFCC' },
-    liquidity: { label: 'Total Liquidity', value: 119.13, unit: 'Cr', currency: '₹', color: '#BF5AF2' },
+    ocf:       { label: 'Operating CF',    value: 10.42, unit: 'Cr', currency: '₹', color: '#00FFCC' },
+    netCF:     { label: 'Net Cash Flow',   value: 0.72,  unit: 'Cr', currency: '₹', color: '#00FFCC' },
+    liquidity: { label: 'Total Liquidity', value: 113.96, unit: 'Cr', currency: '₹', color: '#BF5AF2' },
   },
   monthlyOCF: {
     months: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
-    data:   [1.73, 2.69, 0.72, 1.79, 0.92, 0.65, 2.05, -1.60, 1.38, -3.15, 4.63],
+    data:   [2.84, 2.90, 0.88, 1.65, 0.67, 0.58, 3.91, -1.56, 0.61, -1.17, -0.94],
     color:  '#00FFCC',
   },
 };
@@ -244,7 +244,7 @@ export const historicalTrendsData = {
     { label: 'Revenue',     color: '#00FFCC', points: monthlyRevenue },
     { label: 'Expenses',    color: '#FF453A', points: monthlyExpenses },
     { label: 'Net Profit',  color: '#FFD700', points: monthlyNetProfit },
-    { label: 'Other Income', color: '#A855F7', points: [0.01, 0.11, 0.02, 0.01, 0.04, 0.03, 0.02, 0.01, 0.42, 0.10, 0.05, 0.01] },
+    { label: 'Other Income', color: '#A855F7', points: [0.01, 0.11, 0.02, 0.01, 0.04, 0.03, 0.02, 0.01, 0.42, 0.10, 0.06, 1.44] },
   ],
 };
 

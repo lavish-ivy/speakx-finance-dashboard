@@ -2,7 +2,8 @@
  * Granular monthly financial data — sourced from Tally ERP (IVYPODS TECHNOLOGY PVT LTD).
  * All amounts in Lakhs (Rs.). Converted to Crores for display via formatCr().
  *
- * Data refreshed: 2026-04-07 from group-level Trial Balance + exploded sub-accounts.
+ * Data refreshed: 2026-04-09 from group-level Trial Balance (live Tally sync).
+ * Top-line P&L and BS from Tally group-level TB. OpEx sub-categories from ledger-level reference.
  */
 
 import type { Period } from '../context/DashboardContext';
@@ -14,16 +15,11 @@ export const CF_MONTHS = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 
 // ── P&L Monthly Data (Rs. Lakhs) ───────────────────────────────────────────
 
-/** Revenue sub-accounts */
-export const monthlyInterStateSales = [306.22, 374.82, 414.86, 452.63, 429.10, 388.32, 351.97, 379.96, 410.02, 390.86, 325.84, 0.00];
-export const monthlyIntraStateSales = [9.37, 11.76, 10.11, 12.21, 14.31, 16.06, 13.78, 15.54, 16.69, 15.48, 12.95, 0.00];
-export const monthlyExportSales     = [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.03, 0.00];
+/** Total Revenue (updated from Tally group-level TB 2026-04-09) */
+export const monthlyRevenue = [438.61, 387.76, 426.80, 465.06, 443.44, 404.69, 365.75, 395.50, 426.73, 406.42, 339.19, 190.14];
 
-/** Total Revenue = sum of above */
-export const monthlyRevenue = [315.59, 386.57, 424.97, 464.85, 443.42, 404.38, 365.75, 395.50, 426.71, 406.35, 338.82, 0.00];
-
-/** Cost of Revenue */
-export const monthlyCOGS = [6.43, 6.47, 6.61, 5.73, 5.63, 5.15, 5.06, 4.59, 4.70, 4.82, 4.79, 0.53];
+/** Cost of Revenue (updated from Tally 2026-04-09) */
+export const monthlyCOGS = [6.43, 6.47, 6.61, 5.73, 5.63, 5.15, 5.06, 4.59, 4.70, 4.82, 4.79, 5.90];
 
 /** Gross Profit = Revenue - COGS */
 export const monthlyGrossProfit = monthlyRevenue.map((r, i) => +(r - monthlyCOGS[i]).toFixed(2));
@@ -46,11 +42,11 @@ export const opexMonthly = {
   otherMisc:           [0.39, 0.77, 0.35, 0.79, 0.88, 0.05, 0.67, 5.00, 1.23, 0.28, 0.86, 0.00],
 };
 
-/** Total OpEx per month */
-export const monthlyTotalOpex = [183.26, 260.29, 331.72, 350.26, 302.13, 328.08, 348.44, 582.48, 472.25, 480.38, 457.19, 37.70];
+/** Total OpEx per month (updated from Tally 2026-04-09) */
+export const monthlyTotalOpex = [183.35, 253.40, 333.04, 351.61, 303.55, 328.93, 350.17, 570.06, 474.17, 482.66, 459.98, 564.25];
 
-/** EBITDA = Gross Profit - Total OpEx */
-export const monthlyEBITDA = [125.90, 119.81, 86.64, 108.86, 135.65, 71.14, 12.25, -191.56, -50.24, -78.85, -123.16, -38.23];
+/** EBITDA = Gross Profit - Total OpEx (updated from Tally 2026-04-09) */
+export const monthlyEBITDA = [249.40, 139.18, 88.99, 108.94, 138.37, 74.07, 12.70, -177.72, -9.75, -70.62, -120.03, -235.63];
 
 /** Depreciation */
 export const monthlyDepreciation = [1.01, 1.03, 1.10, 1.22, 1.28, 1.38, 1.95, 1.90, 1.94, 2.18, 2.77, 0.00];
@@ -66,33 +62,37 @@ export const otherIncomeMonthly = {
   incomeTaxRefund:   [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 3.44, 3.44],
 };
 
-export const monthlyOtherIncome = [0.57, 11.30, 1.85, 1.21, 4.10, 3.46, 2.18, 1.43, 42.39, 10.43, 8.81, 3.95];
+export const monthlyOtherIncome = [0.57, 11.30, 1.85, 1.21, 4.10, 3.46, 2.18, 1.43, 42.39, 10.43, 5.55, 144.38];
 
-/** PBT = EBIT + Other Income */
-export const monthlyPBT = [125.46, 130.08, 87.38, 108.85, 138.47, 73.22, 12.48, -192.03, -9.79, -70.60, -117.12, -34.28];
+/** PBT = EBIT + Other Income (auto-computed) */
+export const monthlyPBT = monthlyEBIT.map((e, i) => +(e + monthlyOtherIncome[i]).toFixed(2));
 
 /** Income Tax */
 export const monthlyTax = [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.13];
 
-/** PAT = PBT - Tax */
-export const monthlyPAT = [125.46, 130.08, 87.38, 108.85, 138.47, 73.22, 12.48, -192.03, -9.79, -70.60, -117.12, -34.41];
+/** PAT = PBT - Tax (auto-computed) */
+export const monthlyPAT = monthlyPBT.map((p, i) => +(p - monthlyTax[i]).toFixed(2));
 
 // ── Balance Sheet Monthly Data (Rs. Lakhs) ────────────────────────────────
 
-export const monthlyNCA      = [1208.37, 1402.97, 4151.13, 4357.63, 4448.47, 11253.69, 11406.70, 11684.99, 11550.89, 11531.65, 11290.90, 11155.90];
-export const monthlyCA       = [115.43, 93.50, 174.66, 77.67, 180.01, 90.66, 56.65, 100.54, 67.46, 221.46, 136.01, 726.76];
-export const monthlyEquity   = [12239.15, 12488.55, 15195.75, 15316.13, 15450.10, 22223.04, 22335.75, 22481.39, 22303.67, 22293.94, 22223.32, 22103.12];
-export const monthlyNCL      = [31.32, 29.70, 28.06, 26.40, 24.74, 23.06, 45.38, 19.67, 17.95, 16.45, 14.87, 13.31];
-export const monthlyCL       = [713.25, 551.27, 647.09, 563.81, 518.62, 466.37, 467.69, 809.95, 648.25, 717.78, 784.82, 672.51];
+export const monthlyNCA      = [1130.32, 1324.92, 4073.08, 4279.58, 4370.42, 11175.64, 11328.65, 11605.79, 11468.34, 11449.10, 11208.35, 11200.62];
+export const monthlyCA       = [193.48, 171.55, 252.71, 155.70, 258.04, 168.69, 134.70, 179.74, 150.00, 156.28, 215.29, 195.56];
+export const monthlyEquity   = [944.36, 1193.76, 3900.96, 4021.34, 4155.32, 10928.26, 11040.96, 11186.61, 11008.89, 10999.15, 10928.53, 10808.50];
+export const monthlyNCL      = [31.34, 29.71, 28.06, 26.40, 24.74, 23.06, 45.38, 19.67, 17.95, 16.38, 14.87, 13.31];
+export const monthlyCL       = [98.72, 133.83, 307.79, 278.60, 310.03, 318.94, 364.30, 756.97, 601.25, 660.48, 600.28, 810.00];
 
 /** Total Assets = NCA + CA */
 export const monthlyTotalAssets = monthlyNCA.map((n, i) => +(n + monthlyCA[i]).toFixed(2));
 
 // ── Cash Flow Monthly Data (Rs. Lakhs) — May25 to Mar26 ──────────────────
+// Derived from month-over-month Balance Sheet changes (group-level approximation).
+// ICF = -ΔNCA (investing), FCF = ΔNCL (financing), OCF = ΔEquity + ΔCL - ΔCA (operating residual).
 
-export const monthlyOCF = [-34.06, 188.57, 16.90, 101.38, 28.70, 18.83, 138.11, -168.43, -1.56, -43.72, -141.44];
-export const monthlyICF = [-195.62, -2749.26, -207.72, -92.12, -6806.60, -154.96, -280.18, 132.16, 17.06, 237.98, 135.00];
-export const monthlyFCF = [-1.63, 2.71, -1.60, -1.62, 6.05, 22.37, -24.94, -1.72, -1.50, -1.58, -1.56];
+export const monthlyICF = Array.from({ length: 11 }, (_, i) => +(-(monthlyNCA[i + 1] - monthlyNCA[i])).toFixed(2));
+export const monthlyFCF = Array.from({ length: 11 }, (_, i) => +(monthlyNCL[i + 1] - monthlyNCL[i]).toFixed(2));
+export const monthlyOCF = Array.from({ length: 11 }, (_, i) =>
+  +((monthlyEquity[i + 1] - monthlyEquity[i]) + (monthlyCL[i + 1] - monthlyCL[i]) - (monthlyCA[i + 1] - monthlyCA[i])).toFixed(2)
+);
 
 /** Net Cash Flow = OCF + ICF + FCF */
 export const monthlyNetCF = monthlyOCF.map((o, i) => +(o + monthlyICF[i] + monthlyFCF[i]).toFixed(2));
@@ -118,11 +118,6 @@ export const pnlStructure: PnlRow[] = [
     monthly: monthlyRevenue,
     ytd: sumArr(monthlyRevenue),
     bold: true,
-    children: [
-      { label: 'Inter-State Sales', monthly: monthlyInterStateSales, ytd: sumArr(monthlyInterStateSales), indent: true },
-      { label: 'Intra-State Sales', monthly: monthlyIntraStateSales, ytd: sumArr(monthlyIntraStateSales), indent: true },
-      { label: 'Export Sales', monthly: monthlyExportSales, ytd: sumArr(monthlyExportSales), indent: true },
-    ],
   },
   {
     label: 'Cost of Revenue',
