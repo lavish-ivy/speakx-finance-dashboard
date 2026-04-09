@@ -18,7 +18,7 @@ const HUD = () => {
     };
   }, []);
 
-  const padding = isMobile ? '16px 16px' : isTablet ? '16px' : '20px';
+  const padding = isMobile ? '12px' : isTablet ? '14px' : '16px';
 
   if (isMobile) {
     return (
@@ -30,9 +30,9 @@ const HUD = () => {
         pointerEvents: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
+        gap: 10,
         padding,
-        paddingBottom: '80px',
+        paddingBottom: '70px',
         boxSizing: 'border-box',
       }}>
         <Header />
@@ -45,46 +45,52 @@ const HUD = () => {
     );
   }
 
+  // Desktop/tablet: fit everything in one viewport
+  // Header ~48px, nav bar ~48px, padding 16*2=32px, gaps 10*3=30px → ~158px overhead
   return (
     <div style={{
       position: 'relative',
       width: '100%',
-      minHeight: '100vh',
+      height: '100vh',
       zIndex: 10,
       pointerEvents: 'auto',
       display: 'flex',
       flexDirection: 'column',
       padding,
-      paddingBottom: '80px',
+      paddingBottom: '56px', // nav bar
       boxSizing: 'border-box',
+      overflow: 'hidden',
     }}>
-      <Header />
+      <div style={{ flexShrink: 0 }}>
+        <Header />
+      </div>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1.5fr',
-        gridTemplateRows: 'auto auto auto',
-        gap: 12,
-        marginTop: 12,
+        gridTemplateColumns: '2fr 3fr',
+        gridTemplateRows: '1fr 1.4fr 1fr',
+        gap: 10,
+        marginTop: 10,
         flex: 1,
+        minHeight: 0,
       }}>
         {/* Row 1 left: KPIs */}
-        <div className="fade-in-left" style={{ animationDelay: '0.2s' }}>
+        <div className="fade-in-left" style={{ animationDelay: '0.2s', minHeight: 0, overflow: 'hidden' }}>
           <FinancialKPIs />
         </div>
         {/* Row 1 right: P&L Overview */}
-        <div className="fade-in-right" style={{ animationDelay: '0.3s' }}>
+        <div className="fade-in-right" style={{ animationDelay: '0.3s', minHeight: 0, overflow: 'hidden' }}>
           <FinancialAnalysis />
         </div>
-        {/* Row 2: Revenue vs Expenses (spans full width) */}
-        <div className="fade-in-up" style={{ gridColumn: '1 / -1', animationDelay: '0.4s' }}>
+        {/* Row 2: Revenue vs Expenses (full width) */}
+        <div className="fade-in-up" style={{ gridColumn: '1 / -1', animationDelay: '0.4s', minHeight: 0, overflow: 'hidden' }}>
           <MarginTrends />
         </div>
         {/* Row 3 left: Expenses */}
-        <div className="fade-in-left" style={{ animationDelay: '0.5s' }}>
+        <div className="fade-in-left" style={{ animationDelay: '0.5s', minHeight: 0, overflow: 'hidden' }}>
           <OperatingExpenses />
         </div>
         {/* Row 3 right: Cash Flow */}
-        <div className="fade-in-right" style={{ animationDelay: '0.6s' }}>
+        <div className="fade-in-right" style={{ animationDelay: '0.6s', minHeight: 0, overflow: 'hidden' }}>
           <CashFlowAnalysis />
         </div>
       </div>
