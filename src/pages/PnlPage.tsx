@@ -142,10 +142,9 @@ function RevenueEBITDAChart() {
               height={barH}
               rx={2}
               fill="url(#revBarGrad)"
-              opacity={hoverIdx === i ? 1 : 0.75}
-              initial={{ height: 0, y: zeroY }}
-              animate={{ height: barH, y: barY }}
-              transition={{ delay: i * 0.05, duration: 0.5, ease: 'easeOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: hoverIdx === i ? 1 : 0.75 }}
+              transition={{ delay: i * 0.05, duration: 0.4 }}
               onMouseEnter={() => setHoverIdx(i)}
               onMouseLeave={() => setHoverIdx(null)}
               style={{ cursor: 'crosshair' }}
@@ -286,10 +285,9 @@ function PATChart() {
                 height={barH}
                 rx={2}
                 fill={fillColor}
-                opacity={0.75}
-                initial={{ height: 0, y: zeroY }}
-                animate={{ height: barH, y: barY }}
-                transition={{ delay: i * 0.05, duration: 0.5, ease: 'easeOut' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.75 }}
+                transition={{ delay: i * 0.05, duration: 0.4 }}
               />
               {/* Value label */}
               <text
@@ -418,11 +416,10 @@ function OpExStackedChart() {
                     width={barW}
                     height={segH}
                     fill={s.color}
-                    opacity={0.8}
                     rx={sIdx === series.length - 1 ? 2 : 0}
-                    initial={{ height: 0, y: padT + cH }}
-                    animate={{ height: segH, y: segY }}
-                    transition={{ delay: colIdx * 0.04 + sIdx * 0.02, duration: 0.5 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.8 }}
+                    transition={{ delay: colIdx * 0.04 + sIdx * 0.02, duration: 0.4 }}
                   />
                 );
               })}

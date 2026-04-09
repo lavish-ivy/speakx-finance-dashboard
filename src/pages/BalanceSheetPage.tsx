@@ -78,12 +78,12 @@ function AssetChart() {
           const caY = ncaY - caH;
           return (
             <g key={i}>
-              <motion.rect x={cx - barW / 2} y={ncaY} width={barW} height={ncaH} fill="#00FFCC" opacity={0.7} rx={0}
-                initial={{ height: 0, y: padT + cH }} animate={{ height: ncaH, y: ncaY }}
-                transition={{ delay: i * 0.04, duration: 0.5 }} />
-              <motion.rect x={cx - barW / 2} y={caY} width={barW} height={caH} fill="#39FF14" opacity={0.7} rx={2}
-                initial={{ height: 0, y: ncaY }} animate={{ height: caH, y: caY }}
-                transition={{ delay: i * 0.04 + 0.1, duration: 0.5 }} />
+              <motion.rect x={cx - barW / 2} y={ncaY} width={barW} height={ncaH} fill="#00FFCC" rx={0}
+                initial={{ opacity: 0 }} animate={{ opacity: 0.7 }}
+                transition={{ delay: i * 0.04, duration: 0.4 }} />
+              <motion.rect x={cx - barW / 2} y={caY} width={barW} height={caH} fill="#39FF14" rx={2}
+                initial={{ opacity: 0 }} animate={{ opacity: 0.7 }}
+                transition={{ delay: i * 0.04 + 0.1, duration: 0.4 }} />
             </g>
           );
         })}
@@ -159,9 +159,9 @@ function LiabilitiesChart() {
                 cumH += v;
                 return (
                   <motion.rect key={si} x={cx - barW / 2} y={segY} width={barW} height={segH}
-                    fill={colors[si]} opacity={0.7} rx={si === vals.length - 1 ? 2 : 0}
-                    initial={{ height: 0, y: padT + cH }} animate={{ height: segH, y: segY }}
-                    transition={{ delay: i * 0.04 + si * 0.02, duration: 0.5 }} />
+                    fill={colors[si]} rx={si === vals.length - 1 ? 2 : 0}
+                    initial={{ opacity: 0 }} animate={{ opacity: 0.7 }}
+                    transition={{ delay: i * 0.04 + si * 0.02, duration: 0.4 }} />
                 );
               })}
             </g>

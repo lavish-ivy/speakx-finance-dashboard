@@ -125,9 +125,9 @@ function CashFlowGroupedChart() {
                     rx={1.5}
                     fill={s.color}
                     opacity={0.8}
-                    initial={{ height: 0, y: zeroY }}
-                    animate={{ height: barH, y: barY }}
-                    transition={{ delay: i * 0.04 + si * 0.02, duration: 0.5, ease: 'easeOut' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.8 }}
+                    transition={{ delay: i * 0.04 + si * 0.02, duration: 0.4 }}
                   />
                 );
               })}
