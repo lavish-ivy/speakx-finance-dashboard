@@ -33,7 +33,7 @@ const CHART = {
   width: 500,
   height: 200,
   padLeft: 36,
-  padRight: 30,
+  padRight: 8,
   padTop: 10,
   padBottom: 24,
   yMin: -3,
@@ -275,7 +275,7 @@ export default function MarginTrends() {
             );
           })}
 
-          {/* Data points (dots only — hover for details) */}
+          {/* Data points + value labels */}
           {seriesPoints.map((pts, si) =>
             pts.map((pt, pi) => {
               if (pi >= Math.ceil(pts.length * animProgress)) return null;
@@ -285,61 +285,53 @@ export default function MarginTrends() {
                 tooltip.y === pt.y &&
                 tooltip.seriesName === series[si].name;
               const color = mapColor(series[si].color);
+              // Stagger: Revenue above (+), Expenses below (-), Net Profit further below
+              const labelOffset = si === 0 ? -7 : si === 1 ? 10 : 12;
 
               return (
-                <circle
-                  key={`pt-${si}-${pi}`}
-                  cx={pt.x}
-                  cy={pt.y}
-                  r={isActive ? 4 : 2}
-                  fill={color}
-                  stroke="var(--bg-deep)"
-                  strokeWidth={2}
-                  style={{
-                    filter: `drop-shadow(0 0 3px ${color}80)`,
-                    cursor: 'pointer',
-                    transition: 'r 0.15s ease',
-                  }}
-                  onMouseEnter={() =>
-                    setTooltip({
-                      x: pt.x,
-                      y: pt.y,
-                      value: pt.value,
-                      month: months[pi],
-                      color,
-                      seriesName: series[si].name,
-                    })
-                  }
-                />
+                <g key={`pt-${si}-${pi}`}>
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={isActive ? 4 : 2}
+                    fill={color}
+                    stroke="var(--bg-deep)"
+                    strokeWidth={2}
+                    style={{
+                      filter: `drop-shadow(0 0 3px ${color}80)`,
+                      cursor: 'pointer',
+                      transition: 'r 0.15s ease',
+                    }}
+                    onMouseEnter={() =>
+                      setTooltip({
+                        x: pt.x,
+                        y: pt.y,
+                        value: pt.value,
+                        month: months[pi],
+                        color,
+                        seriesName: series[si].name,
+                      })
+                    }
+                  />
+                  <text
+                    x={pt.x}
+                    y={pt.y + labelOffset}
+                    textAnchor="middle"
+                    fill={color}
+                    style={{
+                      fontFamily: FONTS.label.family,
+                      fontSize: 6,
+                      fontWeight: 600,
+                      opacity: 0.9,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {pt.value.toFixed(1)}
+                  </text>
+                </g>
               );
             })
           )}
-
-          {/* End-of-line labels: series name + latest value at right edge */}
-          {seriesPoints.map((pts, si) => {
-            const lastIdx = Math.ceil(pts.length * animProgress) - 1;
-            if (lastIdx < 0) return null;
-            const pt = pts[lastIdx];
-            const color = mapColor(series[si].color);
-            return (
-              <g key={`end-label-${si}`}>
-                <text
-                  x={pt.x + 6}
-                  y={pt.y + 1}
-                  textAnchor="start"
-                  fill={color}
-                  style={{
-                    fontFamily: FONTS.label.family,
-                    fontSize: 6,
-                    fontWeight: 700,
-                    pointerEvents: 'none',
-                  }}
-                >
-                  {pt.value.toFixed(1)}
-                </text>
-              </g>
-            );
-          })}
 
           {/* Crosshair + tooltip */}
           {tooltip && (
