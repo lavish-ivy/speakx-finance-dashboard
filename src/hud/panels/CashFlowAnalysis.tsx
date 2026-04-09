@@ -143,6 +143,25 @@ function MonthlyOCFChart({ mapColor, isMobile }: BarChartProps) {
               onMouseEnter={() => setHoveredIdx(i)}
               onMouseLeave={() => setHoveredIdx(null)}
             >
+              {/* Value label above positive bars */}
+              {!isNeg && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: isMobile ? 7 : 5,
+                    fontWeight: 600,
+                    color: thisBarColor,
+                    opacity: 0.85,
+                    lineHeight: 1,
+                    marginBottom: 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  {val.toFixed(1)}
+                </div>
+              )}
+
               {/* Top half (positive bars grow up from center) */}
               <div
                 style={{
@@ -201,6 +220,25 @@ function MonthlyOCFChart({ mapColor, isMobile }: BarChartProps) {
                   />
                 )}
               </div>
+
+              {/* Value label below negative bars */}
+              {isNeg && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: isMobile ? 7 : 5,
+                    fontWeight: 600,
+                    color: thisBarColor,
+                    opacity: 0.85,
+                    lineHeight: 1,
+                    marginTop: 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  {val.toFixed(1)}
+                </div>
+              )}
 
               {/* Hover tooltip */}
               {isHov && (

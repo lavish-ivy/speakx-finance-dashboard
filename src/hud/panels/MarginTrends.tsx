@@ -275,7 +275,7 @@ export default function MarginTrends() {
             );
           })}
 
-          {/* Data points */}
+          {/* Data points + value labels */}
           {seriesPoints.map((pts, si) =>
             pts.map((pt, pi) => {
               if (pi >= Math.ceil(pts.length * animProgress)) return null;
@@ -284,32 +284,48 @@ export default function MarginTrends() {
                 tooltip.x === pt.x &&
                 tooltip.y === pt.y &&
                 tooltip.seriesName === series[si].name;
+              const color = mapColor(series[si].color);
 
               return (
-                <circle
-                  key={`pt-${si}-${pi}`}
-                  cx={pt.x}
-                  cy={pt.y}
-                  r={isActive ? 4 : 2}
-                  fill={mapColor(series[si].color)}
-                  stroke="var(--bg-deep)"
-                  strokeWidth={2}
-                  style={{
-                    filter: `drop-shadow(0 0 3px ${mapColor(series[si].color)}80)`,
-                    cursor: 'pointer',
-                    transition: 'r 0.15s ease',
-                  }}
-                  onMouseEnter={() =>
-                    setTooltip({
-                      x: pt.x,
-                      y: pt.y,
-                      value: pt.value,
-                      month: months[pi],
-                      color: mapColor(series[si].color),
-                      seriesName: series[si].name,
-                    })
-                  }
-                />
+                <g key={`pt-${si}-${pi}`}>
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={isActive ? 4 : 2}
+                    fill={color}
+                    stroke="var(--bg-deep)"
+                    strokeWidth={2}
+                    style={{
+                      filter: `drop-shadow(0 0 3px ${color}80)`,
+                      cursor: 'pointer',
+                      transition: 'r 0.15s ease',
+                    }}
+                    onMouseEnter={() =>
+                      setTooltip({
+                        x: pt.x,
+                        y: pt.y,
+                        value: pt.value,
+                        month: months[pi],
+                        color,
+                        seriesName: series[si].name,
+                      })
+                    }
+                  />
+                  <text
+                    x={pt.x}
+                    y={pt.y - 6}
+                    textAnchor="middle"
+                    fill={color}
+                    style={{
+                      fontFamily: FONTS.label.family,
+                      fontSize: 5.5,
+                      opacity: 0.85,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {pt.value.toFixed(1)}
+                  </text>
+                </g>
               );
             })
           )}
