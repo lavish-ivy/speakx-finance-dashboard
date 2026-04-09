@@ -7,7 +7,6 @@ const links = [
   { to: '/pnl',            label: 'P&L' },
   { to: '/balance-sheet',  label: 'BALANCE SHEET' },
   { to: '/cash',           label: 'CASH' },
-  { to: '/trends',         label: 'TRENDS' },
 ];
 
 const periods: Period[] = ['M', 'Q', 'A'];

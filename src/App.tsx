@@ -3,7 +3,6 @@ import OverviewPage from './pages/OverviewPage';
 import PnlPage from './pages/PnlPage';
 import BalanceSheetPage from './pages/BalanceSheetPage';
 import CashPage from './pages/CashPage';
-import TrendsPage from './pages/TrendsPage';
 import DashboardNav from './nav/DashboardNav';
 import GridFloor from './effects/GridFloor';
 import AmbientParticles from './effects/AmbientParticles';
@@ -36,7 +35,6 @@ function App() {
           <Route path="/pnl" element={<PnlPage />} />
           <Route path="/balance-sheet" element={<BalanceSheetPage />} />
           <Route path="/cash" element={<CashPage />} />
-          <Route path="/trends" element={<TrendsPage />} />
         </Routes>
         <DashboardNav />
       </div>
