@@ -134,19 +134,31 @@ function RevenueEBITDAChart() {
           const barH = Math.abs(v / range) * cH;
           const barY = v >= 0 ? toY(v) : zeroY;
           return (
-            <rect
-              key={`bar-${i}`}
-              x={cx - barW / 2}
-              y={barY}
-              width={barW}
-              height={barH}
-              rx={2}
-              fill="url(#revBarGrad)"
-              opacity={hoverIdx === i ? 1 : 0.75}
-              onMouseEnter={() => setHoverIdx(i)}
-              onMouseLeave={() => setHoverIdx(null)}
-              style={{ cursor: 'crosshair' }}
-            />
+            <g key={`bar-${i}`}>
+              <rect
+                x={cx - barW / 2}
+                y={barY}
+                width={barW}
+                height={barH}
+                rx={2}
+                fill="url(#revBarGrad)"
+                opacity={hoverIdx === i ? 1 : 0.75}
+                onMouseEnter={() => setHoverIdx(i)}
+                onMouseLeave={() => setHoverIdx(null)}
+                style={{ cursor: 'crosshair' }}
+              />
+              <text
+                x={cx}
+                y={barY - 3}
+                textAnchor="middle"
+                fill="#00FFCC"
+                fontSize={6}
+                fontFamily="'JetBrains Mono', monospace"
+                opacity={0.8}
+              >
+                {mask(formatCr(v))}
+              </text>
+            </g>
           );
         })}
 
