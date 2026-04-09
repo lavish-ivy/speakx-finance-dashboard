@@ -175,19 +175,31 @@ function RevenueEBITDAChart() {
           transition={{ duration: 1, ease: 'easeInOut', delay: 0.3 }}
         />
 
-        {/* EBITDA dots */}
+        {/* EBITDA dots + labels */}
         {linePoints.map((p, i) => (
-          <motion.circle
-            key={`dot-${i}`}
-            cx={p.x}
-            cy={p.y}
-            r={3}
-            fill={ebitda[i] < 0 ? '#FF453A' : '#FF9F0A'}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 + i * 0.05, duration: 0.2 }}
-            style={{ filter: 'drop-shadow(0 0 4px rgba(255,159,10,0.5))' }}
-          />
+          <g key={`dot-${i}`}>
+            <motion.circle
+              cx={p.x}
+              cy={p.y}
+              r={3}
+              fill={ebitda[i] < 0 ? '#FF453A' : '#FF9F0A'}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 + i * 0.05, duration: 0.2 }}
+              style={{ filter: 'drop-shadow(0 0 4px rgba(255,159,10,0.5))' }}
+            />
+            <text
+              x={p.x}
+              y={p.y - 6}
+              textAnchor="middle"
+              fill={ebitda[i] < 0 ? '#FF453A' : '#FF9F0A'}
+              fontSize={6}
+              fontFamily="'JetBrains Mono', monospace"
+              opacity={0.8}
+            >
+              {mask(formatCr(ebitda[i]))}
+            </text>
+          </g>
         ))}
 
         {/* Tooltip */}
@@ -410,6 +422,7 @@ function OpExStackedChart() {
         {labels.map((_, colIdx) => {
           let cumY = 0;
           const cx = padL + (colIdx + 0.5) / labels.length * cW;
+          const total = series.reduce((acc, s) => acc + s.data[colIdx], 0);
           return (
             <g key={colIdx}>
               {series.map((s, sIdx) => {
@@ -429,6 +442,18 @@ function OpExStackedChart() {
                   />
                 );
               })}
+              {/* Total label on top of stack */}
+              <text
+                x={cx}
+                y={toY(total) - 3}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.7)"
+                fontSize={6}
+                fontFamily="'JetBrains Mono', monospace"
+                opacity={0.8}
+              >
+                {mask(formatCr(total))}
+              </text>
             </g>
           );
         })}

@@ -76,10 +76,23 @@ function AssetChart() {
           const caH = (ca[i] / maxTotal) * cH;
           const ncaY = toY(nca[i]);
           const caY = ncaY - caH;
+          const total = nca[i] + ca[i];
           return (
             <g key={i}>
               <rect x={cx - barW / 2} y={ncaY} width={barW} height={ncaH} fill="#00FFCC" rx={0} opacity={0.7} />
               <rect x={cx - barW / 2} y={caY} width={barW} height={caH} fill="#39FF14" rx={2} opacity={0.7} />
+              {/* Total label on top of stack */}
+              <text
+                x={cx}
+                y={toY(total) - 3}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.7)"
+                fontSize={6}
+                fontFamily="'JetBrains Mono', monospace"
+                opacity={0.8}
+              >
+                {mask(formatCr(total))}
+              </text>
             </g>
           );
         })}
@@ -97,6 +110,7 @@ function AssetChart() {
 
 function LiabilitiesChart() {
   const { period } = useDashboard();
+  const mask = useMaskedValue();
   const eq = aggregate(monthlyEquity, period, true);
   const ncl = aggregate(monthlyNCL, period, true);
   const cl = aggregate(monthlyCL, period, true);
@@ -147,6 +161,7 @@ function LiabilitiesChart() {
           const vals = [eq[i], ncl[i], cl[i]];
           const colors = ['#64D2FF', '#BF5AF2', '#FF9F0A'];
           let cumH = 0;
+          const total = vals.reduce((a, b) => a + b, 0);
           return (
             <g key={i}>
               {vals.map((v, si) => {
@@ -158,6 +173,18 @@ function LiabilitiesChart() {
                     fill={colors[si]} rx={si === vals.length - 1 ? 2 : 0} opacity={0.7} />
                 );
               })}
+              {/* Total label on top of stack */}
+              <text
+                x={cx}
+                y={toY(total) - 3}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.7)"
+                fontSize={6}
+                fontFamily="'JetBrains Mono', monospace"
+                opacity={0.8}
+              >
+                {mask(formatCr(total))}
+              </text>
             </g>
           );
         })}

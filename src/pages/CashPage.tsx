@@ -115,17 +115,30 @@ function CashFlowGroupedChart() {
                 const barH = Math.abs(v / maxAbs) * (cH / 2);
                 const barY = v >= 0 ? toY(v) : zeroY;
                 const xOff = (si - 1) * (barW + 2);
+                const barCx = groupCx + xOff;
                 return (
-                  <rect
-                    key={si}
-                    x={groupCx + xOff - barW / 2}
-                    y={barY}
-                    width={barW}
-                    height={barH}
-                    rx={1.5}
-                    fill={s.color}
-                    opacity={0.8}
-                  />
+                  <g key={si}>
+                    <rect
+                      x={barCx - barW / 2}
+                      y={barY}
+                      width={barW}
+                      height={barH}
+                      rx={1.5}
+                      fill={s.color}
+                      opacity={0.8}
+                    />
+                    <text
+                      x={barCx}
+                      y={v >= 0 ? barY - 3 : barY + barH + 7}
+                      textAnchor="middle"
+                      fill={s.color}
+                      fontSize={5}
+                      fontFamily="'JetBrains Mono', monospace"
+                      opacity={0.8}
+                    >
+                      {mask(formatCr(v))}
+                    </text>
+                  </g>
                 );
               })}
             </g>
@@ -222,10 +235,23 @@ function LiquidityTrendChart() {
           transition={{ duration: 1.2, ease: 'easeInOut' }} />
 
         {points.map((p, i) => (
-          <motion.circle key={i} cx={p.x} cy={p.y} r={3} fill="#BF5AF2"
-            initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 + i * 0.05, duration: 0.2 }}
-            style={{ filter: 'drop-shadow(0 0 4px rgba(191,90,242,0.5))' }} />
+          <g key={i}>
+            <motion.circle cx={p.x} cy={p.y} r={3} fill="#BF5AF2"
+              initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 + i * 0.05, duration: 0.2 }}
+              style={{ filter: 'drop-shadow(0 0 4px rgba(191,90,242,0.5))' }} />
+            <text
+              x={p.x}
+              y={p.y - 6}
+              textAnchor="middle"
+              fill="#BF5AF2"
+              fontSize={6}
+              fontFamily="'JetBrains Mono', monospace"
+              opacity={0.8}
+            >
+              {mask(formatCr(data[i]))}
+            </text>
+          </g>
         ))}
 
         {labels.map((m, i) => (
