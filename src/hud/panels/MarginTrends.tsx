@@ -33,7 +33,7 @@ const CHART = {
   width: 500,
   height: 200,
   padLeft: 36,
-  padRight: 8,
+  padRight: 30,
   padTop: 10,
   padBottom: 24,
   yMin: -3,
@@ -275,7 +275,7 @@ export default function MarginTrends() {
             );
           })}
 
-          {/* Data points + value labels */}
+          {/* Data points (dots only — hover for details) */}
           {seriesPoints.map((pts, si) =>
             pts.map((pt, pi) => {
               if (pi >= Math.ceil(pts.length * animProgress)) return null;
@@ -287,48 +287,59 @@ export default function MarginTrends() {
               const color = mapColor(series[si].color);
 
               return (
-                <g key={`pt-${si}-${pi}`}>
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={isActive ? 4 : 2}
-                    fill={color}
-                    stroke="var(--bg-deep)"
-                    strokeWidth={2}
-                    style={{
-                      filter: `drop-shadow(0 0 3px ${color}80)`,
-                      cursor: 'pointer',
-                      transition: 'r 0.15s ease',
-                    }}
-                    onMouseEnter={() =>
-                      setTooltip({
-                        x: pt.x,
-                        y: pt.y,
-                        value: pt.value,
-                        month: months[pi],
-                        color,
-                        seriesName: series[si].name,
-                      })
-                    }
-                  />
-                  <text
-                    x={pt.x}
-                    y={pt.y - 6}
-                    textAnchor="middle"
-                    fill={color}
-                    style={{
-                      fontFamily: FONTS.label.family,
-                      fontSize: 5.5,
-                      opacity: 0.85,
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    {pt.value.toFixed(1)}
-                  </text>
-                </g>
+                <circle
+                  key={`pt-${si}-${pi}`}
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={isActive ? 4 : 2}
+                  fill={color}
+                  stroke="var(--bg-deep)"
+                  strokeWidth={2}
+                  style={{
+                    filter: `drop-shadow(0 0 3px ${color}80)`,
+                    cursor: 'pointer',
+                    transition: 'r 0.15s ease',
+                  }}
+                  onMouseEnter={() =>
+                    setTooltip({
+                      x: pt.x,
+                      y: pt.y,
+                      value: pt.value,
+                      month: months[pi],
+                      color,
+                      seriesName: series[si].name,
+                    })
+                  }
+                />
               );
             })
           )}
+
+          {/* End-of-line labels: series name + latest value at right edge */}
+          {seriesPoints.map((pts, si) => {
+            const lastIdx = Math.ceil(pts.length * animProgress) - 1;
+            if (lastIdx < 0) return null;
+            const pt = pts[lastIdx];
+            const color = mapColor(series[si].color);
+            return (
+              <g key={`end-label-${si}`}>
+                <text
+                  x={pt.x + 6}
+                  y={pt.y + 1}
+                  textAnchor="start"
+                  fill={color}
+                  style={{
+                    fontFamily: FONTS.label.family,
+                    fontSize: 6,
+                    fontWeight: 700,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {pt.value.toFixed(1)}
+                </text>
+              </g>
+            );
+          })}
 
           {/* Crosshair + tooltip */}
           {tooltip && (
