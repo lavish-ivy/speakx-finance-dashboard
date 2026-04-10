@@ -201,31 +201,83 @@ export const monthlyTotalAssets = monthlyNCA.map((n, i) => +(n + monthlyCA[i]).t
 
 // ── Cash Flow Monthly Data (Rs. Lakhs) — May25 to Mar26 ──────────────────
 // Indirect method derived from month-over-month BS changes.
-//   FCF (financing) = Δcapital + ΔNCL   — fundraises and debt draws
-//   ICF (investing) = -ΔNCA              — investments and capex spend (negative when cash leaves)
-//   OCF (operating) = PBT + ΔCL - ΔCA (prior month) — earnings + WC movement on the cash pool
-// These are a group-level approximation; a true direct-method CF would require
-// voucher-level data (which cannot be fetched over the cloud Tally link).
+//
+// CLASSIFICATION ASSUMPTION (documented for audit trail):
+//   Tally `Current Assets` at IVYPODS is effectively Cash & Equivalents —
+//   HDFC / ICICI bank balances, Razorpay & PhonePe gateway settlements (T+1),
+//   and short-term deposits. SpeakX is B2C so there are no trade receivables;
+//   GST input credits and prepayments are immaterial. Therefore we treat
+//   `monthlyCA` as the cash pot and DO NOT include ΔCA as a working-capital
+//   add-back in OCF. With this classification:
+//     NetCF = OCF + ICF + FCF  is mathematically identical to  ΔCA  (= ΔCash).
+//   This is verified by the `netcf-cash` check in validateFinancialData().
+//
+//   Prior versions used `OCF = PBT + ΔCL − ΔCA`, which by the BS identity
+//   collapsed NetCF to ~0 in every period — structurally degenerate.
+//
+//   A true ledger-split would use OCF = PBT + ΔCL − ΔOtherCA and derive Cash
+//   directly; that requires voucher-level Tally data which the cloud TDL link
+//   cannot return. The CA-as-Cash approximation is the cleanest restatement
+//   achievable with group-level data.
 
-export const monthlyFCF = Array.from({ length: 11 }, (_, i) =>
+/** Operating CF = PBT + ΔOperating liabilities (no ΔCA — CA is treated as cash). */
+export const monthlyOCF = Array.from({ length: 11 }, (_, i) =>
+  +(monthlyPBT[i + 1] + (monthlyCL[i + 1] - monthlyCL[i])).toFixed(2),
+);
+
+/**
+ * CapEx (cash flow) = −ΔFixed Assets. Signed negative when cash is deployed
+ * into PP&E (asset base grew), positive on disposals. SpeakX CapEx YTD is
+ * ~₹1.57 Cr — mostly laptops, studio equipment, and furniture for the Delhi
+ * office.
+ */
+export const monthlyCapEx = Array.from({ length: 11 }, (_, i) =>
+  +(-(monthlyFixedAssets[i + 1] - monthlyFixedAssets[i])).toFixed(2),
+);
+
+/**
+ * Treasury CF = −ΔInvestments. Signed negative when cash is moved INTO
+ * mutual funds / corporate bonds / FDs (treasury deployment), positive on
+ * redemptions. This is not "real" investing activity — it's rebalancing the
+ * cash pool between bank and marketable securities.
+ */
+export const monthlyTreasuryCF = Array.from({ length: 11 }, (_, i) =>
+  +(-(monthlyInvestments[i + 1] - monthlyInvestments[i])).toFixed(2),
+);
+
+/** Investing CF = CapEx + Treasury (matches the old −ΔNCA derivation). */
+export const monthlyICF = monthlyCapEx.map(
+  (c, i) => +(c + monthlyTreasuryCF[i]).toFixed(2),
+);
+
+/**
+ * Financing CF = Δshare capital + Δlong-term debt.
+ *
+ * Historical note: this used to be exported as `monthlyFCF`, which is a
+ * globally confusing name because FCF universally means Free Cash Flow.
+ * Renamed to `monthlyFinancingCF`; a `monthlyFreeCashFlow` export below now
+ * holds the true Free Cash Flow metric.
+ */
+export const monthlyFinancingCF = Array.from({ length: 11 }, (_, i) =>
   +(
     (monthlyCapital[i + 1] - monthlyCapital[i]) +
     (monthlyNCL[i + 1] - monthlyNCL[i])
   ).toFixed(2),
 );
-export const monthlyICF = Array.from({ length: 11 }, (_, i) =>
-  +(-(monthlyNCA[i + 1] - monthlyNCA[i])).toFixed(2),
-);
-export const monthlyOCF = Array.from({ length: 11 }, (_, i) =>
-  +(
-    monthlyPBT[i + 1] +
-    (monthlyCL[i + 1] - monthlyCL[i]) -
-    (monthlyCA[i + 1] - monthlyCA[i])
-  ).toFixed(2),
+
+/**
+ * Free Cash Flow = OCF − CapEx.
+ * `monthlyCapEx` is already signed negative for outflows, so we ADD it here
+ * (OCF + (−|CapEx|)) to reduce OCF by CapEx magnitude.
+ */
+export const monthlyFreeCashFlow = monthlyOCF.map(
+  (o, i) => +(o + monthlyCapEx[i]).toFixed(2),
 );
 
-/** Net Cash Flow = OCF + ICF + FCF (should ≈ ΔCA month-over-month) */
-export const monthlyNetCF = monthlyOCF.map((o, i) => +(o + monthlyICF[i] + monthlyFCF[i]).toFixed(2));
+/** Net Cash Flow = OCF + ICF + FinancingCF (equals ΔCA under the CA-as-Cash classification). */
+export const monthlyNetCF = monthlyOCF.map(
+  (o, i) => +(o + monthlyICF[i] + monthlyFinancingCF[i]).toFixed(2),
+);
 
 // ── P&L Grouped Row Structure (for expandable table) ──────────────────────
 
@@ -546,6 +598,32 @@ function validateFinancialData(): ValidationIssue[] {
       issues.push({
         check: 'opex-split',
         detail: `${MONTHS[i]}: OpEx-ex-fin ${monthlyOperatingExpenses[i]} + Finance ${monthlyFinanceCosts[i]} ≠ Total OpEx ${monthlyTotalOpex[i]}`,
+      });
+    }
+  }
+
+  // 6. Net Cash Flow reconciles to ΔCA (CA-as-Cash classification).
+  //    If this drifts beyond tolerance the indirect-method waterfall is lying
+  //    to investors — cash flows should always tie to the balance sheet change.
+  const cfTol = 1.0; // 1 lakh — larger tolerance here because rounding compounds across OCF+ICF+FCF
+  for (let i = 0; i < 11; i++) {
+    const deltaCA = monthlyCA[i + 1] - monthlyCA[i];
+    const drift = Math.abs(monthlyNetCF[i] - deltaCA);
+    if (drift > cfTol) {
+      issues.push({
+        check: 'netcf-cash',
+        detail: `${MONTHS[i + 1]}: NetCF ${monthlyNetCF[i].toFixed(2)} ≠ ΔCA ${deltaCA.toFixed(2)} (drift ${drift.toFixed(2)} L)`,
+      });
+    }
+  }
+
+  // 7. Investing CF = CapEx + Treasury split holds.
+  for (let i = 0; i < 11; i++) {
+    const expected = monthlyCapEx[i] + monthlyTreasuryCF[i];
+    if (Math.abs(expected - monthlyICF[i]) > tol) {
+      issues.push({
+        check: 'icf-split',
+        detail: `${MONTHS[i + 1]}: CapEx ${monthlyCapEx[i]} + Treasury ${monthlyTreasuryCF[i]} ≠ ICF ${monthlyICF[i]}`,
       });
     }
   }

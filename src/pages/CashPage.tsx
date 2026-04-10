@@ -7,12 +7,13 @@ import DataTable, { type DataRow } from '../shared/DataTable';
 import { useDashboard, useMaskedValue } from '../context/DashboardContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
-  monthlyOCF, monthlyICF, monthlyFCF, monthlyNetCF,
+  monthlyOCF, monthlyICF, monthlyFinancingCF,
+  monthlyCapEx, monthlyTreasuryCF, monthlyFreeCashFlow, monthlyNetCF,
   monthlyRevenue, monthlyCOGS, monthlyTotalOpex, monthlyOtherIncome, monthlyTax,
+  monthlyCA, monthlyInvestments, monthlyFixedAssets,
   aggregateCF, cfPeriodLabels, formatCr,
   aggregate, periodLabels,
 } from '../data/financialData';
-import { cashPositionChart as cpChart } from '../data/mockData';
 
 const sumArr = (a: number[]) => a.reduce((s, v) => s + v, 0);
 
@@ -35,17 +36,37 @@ function catmullRomPath(points: { x: number; y: number }[]): string {
   return d;
 }
 
-// ── Grouped Cash Flow Bar Chart ────────────────────────────────────────────
+// ── Nice-number axis helper (symmetric padding, clean ticks) ───────────────
+
+function niceAxis(min: number, max: number, targetTicks = 5): { lo: number; hi: number; ticks: number[] } {
+  if (min === max) {
+    const pad = Math.max(Math.abs(min) * 0.1, 1);
+    return niceAxis(min - pad, max + pad, targetTicks);
+  }
+  const span = max - min;
+  const rawStep = span / (targetTicks - 1);
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  const lo = Math.floor(min / step) * step;
+  const hi = Math.ceil(max / step) * step;
+  const ticks: number[] = [];
+  for (let v = lo; v <= hi + step * 0.5; v += step) ticks.push(+v.toFixed(6));
+  return { lo, hi, ticks };
+}
+
+// ── Grouped Cash Flow Bar Chart (OCF / ICF / FinCF / FCF) ──────────────────
 
 function CashFlowGroupedChart() {
   const { period } = useDashboard();
   const mask = useMaskedValue();
   const ocf = aggregateCF(monthlyOCF, period);
   const icf = aggregateCF(monthlyICF, period);
-  const fcf = aggregateCF(monthlyFCF, period);
+  const fin = aggregateCF(monthlyFinancingCF, period);
+  const fcf = aggregateCF(monthlyFreeCashFlow, period);
   const labels = cfPeriodLabels(period);
 
-  const allVals = [...ocf, ...icf, ...fcf];
+  const allVals = [...ocf, ...icf, ...fin, ...fcf];
   const maxAbs = Math.max(...allVals.map(Math.abs)) * 1.15 || 1;
 
   const w = 440;
@@ -57,15 +78,16 @@ function CashFlowGroupedChart() {
   const cW = w - padL - padR;
   const cH = h - padT - padB;
   const groupW = cW / labels.length;
-  const barW = Math.min(10, groupW * 0.2);
+  const barW = Math.min(8, groupW * 0.16);
   const zeroY = padT + cH / 2;
 
   const toY = (v: number) => zeroY - (v / maxAbs) * (cH / 2);
 
   const series = [
     { label: 'Operating CF', color: '#00FFCC', data: ocf },
+    { label: 'Free Cash Flow', color: '#FFD700', data: fcf },
     { label: 'Investing CF', color: '#FF9F0A', data: icf },
-    { label: 'Financing CF', color: '#64D2FF', data: fcf },
+    { label: 'Financing CF', color: '#64D2FF', data: fin },
   ];
 
   return (
@@ -81,7 +103,7 @@ function CashFlowGroupedChart() {
       }}>
         Cash Flow Components
       </div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 4, flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 4, flexShrink: 0, flexWrap: 'wrap' }}>
         {series.map((s) => (
           <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
@@ -117,31 +139,20 @@ function CashFlowGroupedChart() {
                 const v = s.data[i];
                 const barH = Math.abs(v / maxAbs) * (cH / 2);
                 const barY = v >= 0 ? toY(v) : zeroY;
-                const xOff = (si - 1) * (barW + 2);
+                // 4 bars centered in group: offsets -1.5, -0.5, +0.5, +1.5
+                const xOff = (si - 1.5) * (barW + 1.5);
                 const barCx = groupCx + xOff;
                 return (
-                  <g key={si}>
-                    <rect
-                      x={barCx - barW / 2}
-                      y={barY}
-                      width={barW}
-                      height={barH}
-                      rx={1.5}
-                      fill={s.color}
-                      opacity={0.8}
-                    />
-                    <text
-                      x={barCx}
-                      y={v >= 0 ? barY - 3 : barY + barH + 7}
-                      textAnchor="middle"
-                      fill={s.color}
-                      fontSize={5}
-                      fontFamily="'JetBrains Mono', monospace"
-                      opacity={0.8}
-                    >
-                      {mask(formatCr(v))}
-                    </text>
-                  </g>
+                  <rect
+                    key={si}
+                    x={barCx - barW / 2}
+                    y={barY}
+                    width={barW}
+                    height={barH}
+                    rx={1.2}
+                    fill={s.color}
+                    opacity={0.85}
+                  />
                 );
               })}
             </g>
@@ -165,14 +176,16 @@ function LiquidityTrendChart() {
   const { period } = useDashboard();
   const mask = useMaskedValue();
 
-  // Total liquidity from mockData (already in Crores — convert to Lakhs for consistency)
-  const liquidityLakhs = cpChart.totalLiquidity.map((v) => v * 100);
+  // Liquidity = Cash (CA) + Marketable Investments, derived from the single
+  // source of truth (financialData.ts), no longer via mockData.
+  const liquidityLakhs = monthlyCA.map((ca, i) => +(ca + monthlyInvestments[i]).toFixed(2));
   const data = aggregate(liquidityLakhs, period, true);
   const labels = periodLabels(period);
 
-  const minVal = Math.min(...data) * 0.9;
-  const maxVal = Math.max(...data) * 1.05;
-  const range = maxVal - minVal || 1;
+  // Symmetric, nice-numbered Y axis — asymmetric min*0.9/max*1.05 padding was
+  // visually exaggerating small swings.
+  const axis = niceAxis(Math.min(...data), Math.max(...data), 5);
+  const range = axis.hi - axis.lo || 1;
 
   const w = 440;
   const h = 180;
@@ -185,14 +198,11 @@ function LiquidityTrendChart() {
 
   const points = data.map((v, i) => ({
     x: padL + (i / Math.max(1, data.length - 1)) * cW,
-    y: padT + cH - ((v - minVal) / range) * cH,
+    y: padT + cH - ((v - axis.lo) / range) * cH,
   }));
 
   const linePath = catmullRomPath(points);
   const areaPath = `${linePath} L${points[points.length - 1].x},${padT + cH} L${points[0].x},${padT + cH} Z`;
-
-  const ticks = 5;
-  const tickVals = Array.from({ length: ticks }, (_, i) => minVal + (range / (ticks - 1)) * i);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -205,7 +215,7 @@ function LiquidityTrendChart() {
         textTransform: 'uppercase',
         flexShrink: 0,
       }}>
-        Total Liquidity Trend
+        Total Liquidity Trend — Cash + Investments
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
@@ -220,8 +230,8 @@ function LiquidityTrendChart() {
           </filter>
         </defs>
 
-        {tickVals.map((tv) => {
-          const yy = padT + cH - ((tv - minVal) / range) * cH;
+        {axis.ticks.map((tv) => {
+          const yy = padT + cH - ((tv - axis.lo) / range) * cH;
           return (
             <g key={tv}>
               <line x1={padL} y1={yy} x2={padL + cW} y2={yy} stroke="var(--chart-gridline)" strokeWidth={0.5} />
@@ -276,43 +286,102 @@ export default function CashPage() {
   const { period } = useDashboard();
   const { isMobile } = useBreakpoint();
 
+  // ── YTD cash-flow aggregates ──────────────────────────────────────────────
   const totalOCF = sumArr(monthlyOCF);
+  const totalCapEx = sumArr(monthlyCapEx);
+  const totalTreasury = sumArr(monthlyTreasuryCF);
   const totalICF = sumArr(monthlyICF);
-  const totalFCF = sumArr(monthlyFCF);
+  const totalFinCF = sumArr(monthlyFinancingCF);
+  const totalFCF = sumArr(monthlyFreeCashFlow);
   const totalNetCF = sumArr(monthlyNetCF);
 
-  // Latest liquidity from mockData (Crores)
-  const latestLiquidity = cpChart.totalLiquidity[11];
-  const latestBank = cpChart.bankBalance[11];
+  // ── Cash position (Mar-26) ────────────────────────────────────────────────
+  // Under the CA-as-Cash classification, Tally's Current Assets group is the
+  // cash pot (HDFC/ICICI/Razorpay/PhonePe/short-term deposits — no trade AR in
+  // SpeakX's B2C model).
+  const cashMar = monthlyCA[11];
+  const investmentsMar = monthlyInvestments[11];
+  const liquidityMar = +(cashMar + investmentsMar).toFixed(2);
+
+  // ── Revenue-based margin metrics ──────────────────────────────────────────
+  const revenueYtd = sumArr(monthlyRevenue);
+  const ocfMarginYtd = revenueYtd === 0 ? 0 : +((totalOCF / revenueYtd) * 100).toFixed(1);
+  const fcfMarginYtd = revenueYtd === 0 ? 0 : +((totalFCF / revenueYtd) * 100).toFixed(1);
+
+  // ── Runway: months of OpEx covered by total liquidity ─────────────────────
+  // For a cash-positive SaaS company "burn multiple" doesn't apply — runway
+  // is framed as "months the liquidity pool could cover OpEx if revenue went
+  // to zero tomorrow" (conservative stress test).
+  const avgMonthlyOpex = +(sumArr(monthlyTotalOpex) / 12).toFixed(2);
+  const monthsOpexCovered = avgMonthlyOpex === 0 ? 0 : +(liquidityMar / avgMonthlyOpex).toFixed(1);
 
   const kpis = [
-    { label: 'Operating CF (YTD)', value: formatCr(totalOCF), sub: `${totalOCF.toFixed(1)} L`, positive: totalOCF > 0, negative: totalOCF < 0 },
-    { label: 'Investing CF (YTD)', value: formatCr(totalICF), sub: `${totalICF.toFixed(1)} L`, negative: totalICF < 0 },
-    { label: 'Financing CF (YTD)', value: formatCr(totalFCF), sub: `${totalFCF.toFixed(1)} L`, negative: totalFCF < 0 },
-    { label: 'Net Cash Flow', value: formatCr(totalNetCF), sub: `${totalNetCF.toFixed(1)} L`, positive: totalNetCF > 0, negative: totalNetCF < 0 },
-    { label: 'Total Liquidity', value: `₹${latestLiquidity.toFixed(1)} Cr`, sub: 'Bank + Investments', positive: true },
-    { label: 'Bank Balance', value: `₹${latestBank.toFixed(1)} Cr`, sub: `${(latestBank * 100).toFixed(1)} L` },
+    {
+      label: 'Total Liquidity',
+      value: formatCr(liquidityMar),
+      sub: `Cash ${formatCr(cashMar)} + Investments ${formatCr(investmentsMar)}`,
+      positive: true,
+    },
+    {
+      label: 'Operating CF (YTD)',
+      value: formatCr(totalOCF),
+      sub: `${ocfMarginYtd.toFixed(1)}% of revenue`,
+      positive: totalOCF > 0,
+      negative: totalOCF < 0,
+    },
+    {
+      label: 'Free Cash Flow (YTD)',
+      value: formatCr(totalFCF),
+      sub: `${fcfMarginYtd.toFixed(1)}% margin · after CapEx ${formatCr(Math.abs(totalCapEx))}`,
+      positive: totalFCF > 0,
+      negative: totalFCF < 0,
+    },
+    {
+      label: 'Runway',
+      value: `${monthsOpexCovered.toFixed(0)} mo`,
+      sub: `@ ${formatCr(avgMonthlyOpex)}/mo OpEx`,
+      positive: monthsOpexCovered >= 18,
+    },
+    {
+      label: 'Cash & Wallets',
+      value: formatCr(cashMar),
+      sub: 'HDFC · ICICI · Razorpay · PhonePe',
+    },
+    {
+      label: 'Treasury Deployed',
+      value: formatCr(totalTreasury),
+      sub: 'Into MFs · Bonds · FDs (YTD)',
+      negative: totalTreasury < 0,
+    },
   ];
 
   const cfLabels = cfPeriodLabels(period);
   const tableHeaders = ['Component', ...cfLabels, 'YTD'];
 
+  // ── Indirect-method CF table: now with CapEx / Treasury split ─────────────
   const cfRows: DataRow[] = [
-    { label: 'Operating CF', values: aggregateCF(monthlyOCF, period), ytd: totalOCF, bold: false },
-    { label: 'Investing CF', values: aggregateCF(monthlyICF, period), ytd: totalICF, bold: false },
-    { label: 'Financing CF', values: aggregateCF(monthlyFCF, period), ytd: totalFCF, bold: false },
-    { label: 'Net Cash Flow', values: aggregateCF(monthlyNetCF, period), ytd: totalNetCF, bold: true, highlight: true },
+    { label: '— Operating Activities —', values: [], ytd: 0, section: true },
+    { label: 'Operating Cash Flow', values: aggregateCF(monthlyOCF, period), ytd: totalOCF, bold: true },
+    { label: '— Investing Activities —', values: [], ytd: 0, section: true },
+    { label: 'CapEx (Fixed Assets)', values: aggregateCF(monthlyCapEx, period), ytd: totalCapEx, indent: true },
+    { label: 'Treasury (MF / Bonds / FD)', values: aggregateCF(monthlyTreasuryCF, period), ytd: totalTreasury, indent: true },
+    { label: 'Investing Cash Flow', values: aggregateCF(monthlyICF, period), ytd: totalICF, bold: true },
+    { label: '— Financing Activities —', values: [], ytd: 0, section: true },
+    { label: 'Financing Cash Flow', values: aggregateCF(monthlyFinancingCF, period), ytd: totalFinCF, bold: true },
+    { label: '— Results —', values: [], ytd: 0, section: true },
+    { label: 'Free Cash Flow (OCF − CapEx)', values: aggregateCF(monthlyFreeCashFlow, period), ytd: totalFCF, bold: true, highlight: true },
+    { label: 'Net Change in Cash', values: aggregateCF(monthlyNetCF, period), ytd: totalNetCF, bold: true, highlight: true },
   ];
 
   // ── Cash P&L (Direct Method) ─────────────────────────────────────────────
-  // Reads like a P&L, numbers are cash flows. Data is sourced directly from
+  // Reads like a P&L, numbers are cash flows. Data sourced directly from
   // Tally period-activity arrays for Sales Accounts / Direct Expenses /
   // Indirect Expenses / Indirect Incomes — which are ~95% cash-basis for
   // SpeakX's B2C model (payment gateways settle directly to bank, bills pay
   // in-month). The small accrual noise (month-end salary bookings, card
-  // settlement timing) shows up as the drift between this view and the
-  // indirect-method OCF above, visible in the reconciliation row at the
-  // bottom of this table.
+  // settlement timing) is the drift between this view's "Net Operating Cash
+  // Flow" and the indirect-method "Operating Cash Flow" above — quantified in
+  // the reconciliation row at the bottom of this table.
 
   const pnlLabels = periodLabels(period);
   const cashPnlHeaders = ['Cash Flow', ...pnlLabels, 'YTD'];
@@ -342,6 +411,25 @@ export default function CashPage() {
   const outflowsYtd = +(cogsYtd + opexYtd + taxYtd).toFixed(2);
   const netCashYtd = +(inflowsYtd - outflowsYtd).toFixed(2);
 
+  // ── Reconciliation: direct vs indirect OCF ───────────────────────────────
+  // Indirect OCF covers May-Mar (11 months — it needs a prior-month BS
+  // baseline, so April can't have an indirect value). Direct Cash P&L covers
+  // Apr-Mar (12 months). To make the two series comparable across monthly,
+  // quarterly, and yearly views, we pad indirect with a zero for April and
+  // then run both through the same `aggregate()` helper.
+  //
+  // The drift each period ≈ change in working capital (ΔCL) that the indirect
+  // method picks up but the direct method doesn't — a feature, not a bug:
+  // ΣDrift ≈ −Σ ΔCL (accrued vendor payables growing = cash "saved" in the
+  // indirect view). CFOs reading the table should interpret a negative drift
+  // as "payables grew this period, so indirect-OCF > direct-cash-earnings."
+  const monthlyOCFPadded = [0, ...monthlyOCF];
+  const indirectAgg = aggregate(monthlyOCFPadded, period);
+  const driftValues = netCashByPeriod.map(
+    (v, i) => +(v - indirectAgg[i]).toFixed(2),
+  );
+  const ocfDriftYtd = +(netCashYtd - totalOCF).toFixed(2);
+
   const cashPnlRows: DataRow[] = [
     // Cash Inflows
     { label: 'Revenue Received', values: revAgg, ytd: revYtd },
@@ -349,11 +437,16 @@ export default function CashPage() {
     { label: 'Total Cash Inflows', values: inflowsByPeriod, ytd: inflowsYtd, bold: true, highlight: true },
     // Cash Outflows
     { label: 'Cost of Revenue (Direct Expenses)', values: cogsAgg, ytd: cogsYtd },
-    { label: 'Operating Expenses', values: opexAgg, ytd: opexYtd },
+    { label: 'Operating Expenses (incl. interest)', values: opexAgg, ytd: opexYtd },
     { label: 'Income Tax Paid', values: taxAgg, ytd: taxYtd },
     { label: 'Total Cash Outflows', values: outflowsByPeriod, ytd: outflowsYtd, bold: true, highlight: true },
     // Net
-    { label: 'Net Operating Cash Flow', values: netCashByPeriod, ytd: netCashYtd, bold: true, highlight: true },
+    { label: 'Net Operating Cash Flow (direct)', values: netCashByPeriod, ytd: netCashYtd, bold: true, highlight: true },
+    // Reconciliation row — drift between direct (Cash P&L above) and indirect
+    // (Cash Flow Statement up top) OCF. Non-zero drift is accrual noise:
+    // month-end salary accruals, wallet settlement timing, and small GST/TDS
+    // cut-offs. Close-to-zero drift means the direct method ties out.
+    { label: 'Drift vs Indirect-Method OCF', values: driftValues, ytd: ocfDriftYtd },
   ];
 
   return (
@@ -387,7 +480,7 @@ export default function CashPage() {
           marginBottom: 4,
           marginTop: 2,
         }}>
-          Indirect Method — ΔBS derived
+          Indirect Method — derived from Balance Sheet deltas
         </div>
         <DataTable
           headers={tableHeaders}
@@ -414,18 +507,31 @@ export default function CashPage() {
         <div style={{
           fontFamily: "'Inter', sans-serif",
           fontSize: 8,
-          color: 'rgba(255,255,255,0.35)',
+          color: 'rgba(255,255,255,0.4)',
           marginTop: 6,
-          lineHeight: 1.4,
-          maxWidth: 720,
+          lineHeight: 1.5,
+          maxWidth: 760,
+          padding: '8px 10px',
+          background: 'rgba(255, 159, 10, 0.04)',
+          border: '1px solid rgba(255, 159, 10, 0.15)',
+          borderRadius: 6,
         }}>
-          Sourced from Tally period-activity (Sales Accounts, Direct/Indirect
-          Expenses, Indirect Incomes). For SpeakX's B2C model these streams
-          are effectively cash-basis (payment gateways settle directly to
-          bank, bills clear in-month). Income Tax Paid shows ₹0 because no
-          income tax has been booked in FY26 yet — this will populate after
-          year-end closing. GST cash flow is not broken out separately
-          because Tally group-level TB rolls it into Current Liabilities.
+          <strong style={{ color: 'rgba(255, 159, 10, 0.9)' }}>Classification notes (Ind-AS 7):</strong>
+          {' '}
+          <strong>Cash &amp; Equivalents</strong> = Tally's Current Assets group. For SpeakX's B2C model
+          this is effectively Bank + payment gateway (Razorpay/PhonePe) + short-term deposits — there are
+          no trade receivables and GST input / prepayments are immaterial. Fixed Assets ({formatCr(monthlyFixedAssets[11])})
+          are excluded from liquidity.
+          {' '}
+          <strong>Finance Costs</strong> (interest on loans, bank charges) are classified under Operating
+          Activities per Ind-AS 7 para 33 option (a) and flow through the "Operating Expenses (incl. interest)"
+          line of the direct-method Cash P&L.
+          {' '}
+          <strong>Income Taxes Paid</strong> shows ₹0 because no tax has been booked in FY26 yet — year-end
+          provision will populate this line at close. See P&L page for the estimated statutory provision at 25.17%.
+          {' '}
+          <strong>GST cash flow</strong> is not broken out separately because Tally group-level TB rolls GST
+          payable into Current Liabilities.
         </div>
       </div>
     </PageShell>
