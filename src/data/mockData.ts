@@ -24,8 +24,6 @@ import {
   monthlyCOGS as monthlyCOGSLakhs,
   monthlyTotalOpex as monthlyOpExLakhs,
   monthlyOtherIncome as monthlyOtherIncomeLakhs,
-  monthlyEBITDA as monthlyEBITDALakhs,
-  monthlyPBT as monthlyPBTLakhs,
   monthlyPAT as monthlyPATLakhs,
   monthlyNCA as monthlyNCALakhs,
   monthlyCA as monthlyCALakhs,
@@ -33,6 +31,7 @@ import {
   monthlyNCL as monthlyNCLLakhs,
   monthlyCL as monthlyCLLakhs,
   monthlyTotalAssets as monthlyTotalAssetsLakhs,
+  monthlyInvestments as monthlyInvestmentsLakhsReal,
   monthlyOCF as monthlyOCFLakhs,
   monthlyNetCF as monthlyNetCFLakhs,
 } from './financialData';
@@ -61,8 +60,6 @@ const monthlyExpenses = monthlyCOGSLakhs.map((c, i) =>
   toCr(c + monthlyOpExLakhs[i]),
 );
 const monthlyOtherIncome = toCrArray(monthlyOtherIncomeLakhs);
-const monthlyEBITDA = toCrArray(monthlyEBITDALakhs);
-const monthlyPBT = toCrArray(monthlyPBTLakhs);
 const monthlyNetProfit = toCrArray(monthlyPATLakhs);
 const monthlyNetMarginPct = monthlyRevenue.map((r, i) =>
   r === 0 ? 0 : +((monthlyNetProfit[i] / r) * 100).toFixed(1),
@@ -78,7 +75,6 @@ const ytdTotalExp = sumLakhsAsCr(
   monthlyCOGSLakhs.map((c, i) => c + monthlyOpExLakhs[i]),
 );
 const ytdOtherIncome = sumLakhsAsCr(monthlyOtherIncomeLakhs);
-const ytdEBITDA = sumLakhsAsCr(monthlyEBITDALakhs);
 const ytdNetProfit = sumLakhsAsCr(monthlyPATLakhs);
 const ytdTotalIncome = sumLakhsAsCr(
   monthlyRevenueLakhs.map((r, i) => r + monthlyOtherIncomeLakhs[i]),
@@ -318,16 +314,10 @@ export const cashLiquidityData = [
 
 // ── Cash Position Chart (monthly investments + current assets, derived) ────
 
-// NCA minus the approximate fixed-asset sleeve gives us investments proxy.
-// Current Assets = Bank/Wallets/Deposits combined (Tally group level doesn't split further).
-const monthlyFixedAssetsLakhsApprox = monthlyNCALakhs.map((nca, i) =>
-  // Interpolate a simple FA trajectory from opening 75.10 to closing 232.56 (Tally actuals).
-  // Used only to separate NCA into Inv vs FA for display; the sum is exact.
-  +(75.10 + ((232.56 - 75.10) * i) / (monthlyNCALakhs.length - 1)).toFixed(2),
-);
-const monthlyInvestmentsLakhs = monthlyNCALakhs.map((nca, i) =>
-  +(nca - monthlyFixedAssetsLakhsApprox[i]).toFixed(2),
-);
+// Fixed Assets and Investments are now real Tally sub-head closing balances
+// sourced from financialData.ts (no longer interpolated). They still sum to
+// monthlyNCA exactly, so the Cash Position chart stack matches the NCA totals.
+const monthlyInvestmentsLakhs = monthlyInvestmentsLakhsReal;
 
 export const cashPositionChart = {
   months: [...MONTHS],
