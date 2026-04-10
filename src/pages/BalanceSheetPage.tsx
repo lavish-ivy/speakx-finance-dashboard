@@ -7,7 +7,9 @@ import { useDashboard, useMaskedValue } from '../context/DashboardContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
   monthlyNCA, monthlyCA, monthlyEquity, monthlyNCL, monthlyCL,
-  monthlyTotalAssets, aggregate, periodLabels, formatCr,
+  monthlyTotalAssets, monthlyFixedAssets, monthlyInvestments,
+  monthlyCapital, monthlyPnLAccount,
+  aggregate, periodLabels, formatCr,
 } from '../data/financialData';
 
 // ── Stacked Asset Chart (NCA + CA) ─────────────────────────────────────────
@@ -227,13 +229,20 @@ export default function BalanceSheetPage() {
   const labels = periodLabels(period);
   const tableHeaders = ['Item', ...labels];
 
+  // Sub-heads render as indented rows directly under each parent group so the
+  // reader sees exactly how NCA (Fixed Assets + Investments) and Equity
+  // (Capital Account + P&L A/c) are composed on the Tally Trial Balance.
   const bsRows: DataRow[] = [
     { label: 'Non-Current Assets', values: aggregate(monthlyNCA, period, true), bold: true },
-    { label: 'Current Assets', values: aggregate(monthlyCA, period, true), bold: false },
+    { label: 'Fixed Assets', values: aggregate(monthlyFixedAssets, period, true), indent: true },
+    { label: 'Investments', values: aggregate(monthlyInvestments, period, true), indent: true },
+    { label: 'Current Assets', values: aggregate(monthlyCA, period, true), bold: true },
     { label: 'Total Assets', values: aggregate(monthlyTotalAssets, period, true), bold: true, highlight: true },
     { label: 'Equity', values: aggregate(monthlyEquity, period, true), bold: true },
-    { label: 'Non-Current Liabilities', values: aggregate(monthlyNCL, period, true), bold: false },
-    { label: 'Current Liabilities', values: aggregate(monthlyCL, period, true), bold: false },
+    { label: 'Capital Account', values: aggregate(monthlyCapital, period, true), indent: true },
+    { label: 'Profit & Loss A/c', values: aggregate(monthlyPnLAccount, period, true), indent: true },
+    { label: 'Non-Current Liabilities', values: aggregate(monthlyNCL, period, true), bold: true },
+    { label: 'Current Liabilities', values: aggregate(monthlyCL, period, true), bold: true },
     {
       label: 'Total E&L',
       values: aggregate(monthlyEquity, period, true).map((e, i) =>

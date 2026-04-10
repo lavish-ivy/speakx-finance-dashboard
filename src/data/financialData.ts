@@ -56,8 +56,8 @@ export const opexMonthly = {
   otherMisc:           [0.39, 0.77, 0.35, 0.79, 0.88, 0.05, 0.67, 5.00, 1.23, 0.28, 0.86, 0.00],
 };
 
-/** Total OpEx per month (Indirect Expenses period activity, Tally 2026-04-10) */
-export const monthlyTotalOpex = [183.35, 253.40, 333.04, 351.61, 303.55, 328.93, 350.17, 570.06, 474.17, 482.66, 459.98, 564.29];
+/** Total OpEx per month (Indirect Expenses period activity, Tally cache 2026-04-09) */
+export const monthlyTotalOpex = [183.35, 253.40, 333.04, 351.61, 303.55, 328.93, 350.17, 570.06, 474.17, 482.66, 459.98, 564.25];
 
 /**
  * EBITDA = Gross Profit − Total OpEx (auto-computed — DO NOT store).
@@ -89,8 +89,8 @@ export const otherIncomeMonthly = {
   incomeTaxRefund:   [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 3.44, 3.44],
 };
 
-/** Other Income (Indirect Incomes period activity, Tally 2026-04-10) */
-export const monthlyOtherIncome = [0.57, 11.30, 1.85, 1.21, 4.10, 3.46, 2.18, 1.43, 42.39, 10.43, 5.55, 205.14];
+/** Other Income (Indirect Incomes period activity, Tally cache 2026-04-09) */
+export const monthlyOtherIncome = [0.57, 11.30, 1.85, 1.21, 4.10, 3.46, 2.18, 1.43, 42.39, 10.43, 5.55, 144.38];
 
 /** PBT = EBIT + Other Income (auto-computed) */
 export const monthlyPBT = monthlyEBIT.map((e, i) => +(e + monthlyOtherIncome[i]).toFixed(2));
@@ -101,32 +101,46 @@ export const monthlyTax = [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
 /** PAT = PBT − Tax (auto-computed) */
 export const monthlyPAT = monthlyPBT.map((p, i) => +(p - monthlyTax[i]).toFixed(2));
 
-// ── Balance Sheet Monthly Data (Rs. Lakhs, month-end closing, Tally 2026-04-10) ──
+// ── Balance Sheet Monthly Data (Rs. Lakhs, month-end closing, Tally cache 2026-04-09) ──
 
-/** Non-Current Assets = Fixed Assets + Investments (Tally group-level closing) */
-export const monthlyNCA      = [1130.32, 1324.92, 4073.08, 4279.58, 4370.42, 11175.64, 11328.65, 11605.79, 11468.34, 11449.10, 11208.35, 11255.30];
+/**
+ * NCA sub-heads (Tally group-level closing balances).
+ * monthlyNCA === monthlyFixedAssets + monthlyInvestments (per-month).
+ */
+export const monthlyFixedAssets = [75.10, 77.47, 81.01, 86.83, 89.16, 131.73, 152.81, 153.87, 162.72, 231.62, 235.45, 232.56];
+export const monthlyInvestments = [1055.23, 1247.45, 3992.08, 4192.75, 4281.26, 11043.91, 11175.84, 11451.92, 11305.62, 11217.47, 10972.90, 10968.06];
+
+/** Non-Current Assets = Fixed Assets + Investments */
+export const monthlyNCA = monthlyFixedAssets.map((f, i) => +(f + monthlyInvestments[i]).toFixed(2));
 
 /** Current Assets (Tally group-level closing) */
-export const monthlyCA       = [193.48, 171.55, 252.71, 155.70, 258.04, 168.69, 134.70, 179.74, 150.00, 156.28, 215.29, 201.63];
+export const monthlyCA       = [193.48, 171.55, 252.71, 155.70, 258.04, 168.69, 134.70, 179.74, 150.00, 156.28, 215.29, 195.56];
 
 /** Non-Current Liabilities = Loans (Liability) */
 export const monthlyNCL      = [31.34, 29.71, 28.06, 26.40, 24.74, 23.06, 45.38, 19.67, 17.95, 16.38, 14.87, 13.31];
 
 /** Current Liabilities */
-export const monthlyCL       = [98.72, 133.83, 307.79, 278.60, 310.03, 318.94, 364.30, 756.97, 601.25, 660.48, 600.28, 810.04];
+export const monthlyCL       = [98.72, 133.83, 307.79, 278.60, 310.03, 318.94, 364.30, 756.97, 601.25, 660.48, 600.28, 810.00];
 
 /**
- * Total Equity = Capital Account (pre-P&L) + Current-Year retained earnings.
+ * Equity sub-heads (Tally group-level closing balances).
  *
- * Tally's Capital Account at month-end is the pre-P&L-transfer balance, so
- * reported equity in the P&L/BS view must ADD the YTD net P&L up to that month.
- * We compute each month's equity here as [Capital_m + Σ PBT_0..m].
+ * Capital Account = paid-up share capital + securities premium + reserves
+ *                   (pre-P&L-transfer balance at month-end).
+ * Profit & Loss A/c = cumulative retained earnings closing balance as shown in
+ *                     Tally's Trial Balance — this already absorbs the transfer
+ *                     of prior-period P&L. The current period's flow sits in
+ *                     Sales/Expenses ledgers until year-end closing.
+ *
+ * Total Equity (below) = Capital + P&L A/c, which matches the equity Tally shows
+ * on its Balance Sheet report (verified 2026-04-09 against user screenshot:
+ * Mar-26 Equity = 108.08 Cr).
  */
-const capitalPreYtd = [944.36, 944.36, 3512.38, 3543.77, 3568.81, 10203.38, 10242.02, 10374.97, 10374.97, 10374.97, 10374.97, 10374.97];
-export const monthlyEquity = capitalPreYtd.map((cap, i) => {
-  const cumPbt = monthlyPBT.slice(0, i + 1).reduce((a, b) => a + b, 0);
-  return +(cap + cumPbt).toFixed(2);
-});
+export const monthlyCapital    = [944.36, 944.36, 3512.38, 3543.77, 3568.81, 10203.38, 10242.02, 10374.97, 10374.97, 10374.97, 10374.97, 10374.97];
+export const monthlyPnLAccount = [0.00, 249.40, 388.58, 477.57, 586.51, 724.88, 798.94, 811.64, 633.92, 624.18, 553.56, 433.53];
+
+/** Total Equity = Capital Account + Profit & Loss A/c (Tally TB closing balances) */
+export const monthlyEquity = monthlyCapital.map((c, i) => +(c + monthlyPnLAccount[i]).toFixed(2));
 
 /** Total Assets = NCA + CA */
 export const monthlyTotalAssets = monthlyNCA.map((n, i) => +(n + monthlyCA[i]).toFixed(2));
@@ -141,7 +155,7 @@ export const monthlyTotalAssets = monthlyNCA.map((n, i) => +(n + monthlyCA[i]).t
 
 export const monthlyFCF = Array.from({ length: 11 }, (_, i) =>
   +(
-    (capitalPreYtd[i + 1] - capitalPreYtd[i]) +
+    (monthlyCapital[i + 1] - monthlyCapital[i]) +
     (monthlyNCL[i + 1] - monthlyNCL[i])
   ).toFixed(2),
 );
@@ -409,15 +423,19 @@ function validateFinancialData(): ValidationIssue[] {
     }
   }
 
-  // 2. Balance-sheet equation holds each month: A = E + L
+  // 2. Balance-sheet equation holds each month: A = E + L + PBT[M]
+  //    (PBT[M] is the current month's operating flow that hasn't yet been
+  //    closed to the P&L A/c group — Tally carries it in Sales/Expenses
+  //    ledgers until year-end. The displayed Equity at month M is
+  //    Capital[M] + P&L_A/c[M] where P&L_A/c[M] = cum(PBT[Apr..M-1]).)
   for (let i = 0; i < 12; i++) {
     const assets = monthlyNCA[i] + monthlyCA[i];
-    const liabEquity = monthlyEquity[i] + monthlyNCL[i] + monthlyCL[i];
+    const liabEquity = monthlyEquity[i] + monthlyNCL[i] + monthlyCL[i] + monthlyPBT[i];
     const drift = Math.abs(assets - liabEquity);
     if (drift > tol) {
       issues.push({
         check: 'bs-equation',
-        detail: `${MONTHS[i]}-26: Assets ${assets.toFixed(2)} L vs L+E ${liabEquity.toFixed(2)} L — drift ${drift.toFixed(2)} L`,
+        detail: `${MONTHS[i]}-26: Assets ${assets.toFixed(2)} L vs (E+L+PBT) ${liabEquity.toFixed(2)} L — drift ${drift.toFixed(2)} L`,
       });
     }
   }
