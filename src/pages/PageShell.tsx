@@ -11,15 +11,31 @@ export default function PageShell({ children }: { children: ReactNode }) {
     return () => { els.forEach(el => el.classList.remove('scrollable')); };
   }, []);
 
+  if (isMobile) {
+    return (
+      <div style={{
+        maxWidth: 1440,
+        margin: '0 auto',
+        padding: 16,
+        paddingBottom: 70,
+        minHeight: '100vh',
+        boxSizing: 'border-box',
+      }}>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div style={{
       maxWidth: 1440,
       margin: '0 auto',
-      padding: isMobile ? 16 : 24,
-      paddingTop: isMobile ? 16 : 32,
-      paddingBottom: 80,
-      minHeight: '100vh',
+      padding: '16px 16px 52px',
+      height: '100vh',
       boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
     }}>
       {children}
     </div>

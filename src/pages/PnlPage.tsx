@@ -44,6 +44,11 @@ function RevenueEBITDAChart() {
   const ebitda = aggregate(monthlyEBITDA, period);
   const labels = periodLabels(period);
 
+  // YTDs are computed from the Lakhs source with a single /100 conversion so
+  // they match the authoritative KPI totals (no "sum of 2dp Cr bars" drift).
+  const ytdRevCr = monthlyRevenue.reduce((a, b) => a + b, 0) / 100;
+  const ytdEbitdaCr = monthlyEBITDA.reduce((a, b) => a + b, 0) / 100;
+
   const allVals = [...rev, ...ebitda];
   const minVal = Math.min(0, ...allVals) * 1.1;
   const maxVal = Math.max(...allVals) * 1.15;
@@ -76,15 +81,37 @@ function RevenueEBITDAChart() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{
-        fontFamily: "'Orbitron', monospace",
-        fontSize: 10,
-        color: 'var(--text-muted)',
-        letterSpacing: '0.1em',
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: 8,
         marginBottom: 4,
-        textTransform: 'uppercase',
         flexShrink: 0,
       }}>
-        Revenue vs EBITDA
+        <div style={{
+          fontFamily: "'Orbitron', monospace",
+          fontSize: 10,
+          color: 'var(--text-muted)',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+        }}>
+          Revenue vs EBITDA
+        </div>
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 9,
+          letterSpacing: '0.05em',
+          whiteSpace: 'nowrap',
+        }}>
+          <span style={{ color: '#00FFCC' }}>
+            {mask(`REV ₹${ytdRevCr.toFixed(2)} Cr`)}
+          </span>
+          <span style={{ color: ytdEbitdaCr >= 0 ? '#FF9F0A' : '#FF453A' }}>
+            {mask(`EBITDA ₹${ytdEbitdaCr.toFixed(2)} Cr`)}
+          </span>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 14, marginBottom: 4, flexShrink: 0 }}>
@@ -258,6 +285,19 @@ function PATChart() {
   const pat = aggregate(monthlyPAT, period);
   const labels = periodLabels(period);
 
+  // YTD is computed from the Lakhs source (single conversion) so it matches
+  // the "PAT (YTD)" KPI exactly — avoids the "sum of rounded values" drift
+  // that bit us when bar labels were formatted in Cr at 2dp.
+  const ytdPatLakhs = monthlyPAT.reduce((a, b) => a + b, 0);
+  const ytdPatCr = ytdPatLakhs / 100;
+
+  // Per-bar labels stay in Lakhs — that's the native precision of the source
+  // data (financialData.monthlyPAT is 2dp in Lakhs), so each bar label is
+  // exact AND the bars sum to the YTD headline without drift. Mixing units on
+  // the same page is deliberate: monthly granularity reads naturally in L,
+  // the aggregate reads naturally in Cr.
+  const formatLakhs = (lakhs: number): string => `₹${lakhs.toFixed(1)} L`;
+
   const maxAbs = Math.max(...pat.map(Math.abs)) * 1.2 || 1;
   const w = 440;
   const h = 180;
@@ -273,15 +313,31 @@ function PATChart() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{
-        fontFamily: "'Orbitron', monospace",
-        fontSize: 10,
-        color: 'var(--text-muted)',
-        letterSpacing: '0.1em',
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: 8,
         marginBottom: 4,
-        textTransform: 'uppercase',
         flexShrink: 0,
       }}>
-        Profit After Tax
+        <div style={{
+          fontFamily: "'Orbitron', monospace",
+          fontSize: 10,
+          color: 'var(--text-muted)',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+        }}>
+          Profit After Tax
+        </div>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 9,
+          color: ytdPatCr >= 0 ? '#00FFCC' : '#FF453A',
+          letterSpacing: '0.05em',
+          whiteSpace: 'nowrap',
+        }}>
+          {mask(`YTD ₹${ytdPatCr.toFixed(2)} Cr`)}
+        </div>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
@@ -312,7 +368,7 @@ function PATChart() {
                   fontFamily="'JetBrains Mono', monospace"
                   opacity={0.8}
                 >
-                  {mask(formatCr(v))}
+                  {mask(formatLakhs(v))}
                 </text>
               </g>
             );

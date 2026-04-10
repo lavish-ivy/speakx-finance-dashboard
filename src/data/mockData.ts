@@ -1,76 +1,162 @@
 /**
- * Real FY 2025-26 financial data — sourced from Tally ERP (IVYPODS TECHNOLOGY PVT LTD).
+ * HUD / Extended-dashboard data — DERIVED from financialData.ts.
  *
- * All amounts are in Indian Rupees.
- * Unit key:  'Cr' = Crores (10M),  'L' = Lakhs (100K)
+ * This file used to contain a parallel hand-entered copy of the FY 2025-26 numbers
+ * in Crores. That parallel copy drifted badly from reality:
+ *   - Total Equity was ₹216.70 Cr (real: ₹106.34 Cr) — an unexplained ₹112.95 Cr
+ *     additive offset had been applied to every month of the equityTrend series.
+ *   - Balance sheet did not balance (Assets 119.59 ≠ Equity 216.70 + Liab 6.99).
+ *   - Net Profit was ₹1.98 Cr (real PBT: ₹2.59 Cr) because a monthly EBITDA array
+ *     was mislabeled and the Mar-26 Other Income booking was ₹0.61 Cr short.
+ *   - cashPositionChart.investments was in Lakhs but labelled Cr (off by 10×).
  *
- * Data refreshed: 2026-04-09 from group-level Trial Balance (live Tally sync).
- * Cash flow computed via direct method from actual cash balance changes.
+ * All values in this file now derive from `financialData.ts` — the single source
+ * of truth synced from Tally group-level Trial Balance (2026-04-10). Hand-entered
+ * values that Tally group TB cannot expose (ledger-level breakdowns, wallet/bank
+ * splits) are clearly flagged and kept only for decorative panels.
+ *
+ * Units: all values in ₹ Crores unless otherwise noted.
  */
 
-// ── Monthly P&L (Apr-25 to Mar-26) ─────────────────────────────────────────
+import {
+  MONTHS,
+  monthlyRevenue as monthlyRevenueLakhs,
+  monthlyCOGS as monthlyCOGSLakhs,
+  monthlyTotalOpex as monthlyOpExLakhs,
+  monthlyOtherIncome as monthlyOtherIncomeLakhs,
+  monthlyEBITDA as monthlyEBITDALakhs,
+  monthlyPBT as monthlyPBTLakhs,
+  monthlyPAT as monthlyPATLakhs,
+  monthlyNCA as monthlyNCALakhs,
+  monthlyCA as monthlyCALakhs,
+  monthlyEquity as monthlyEquityLakhs,
+  monthlyNCL as monthlyNCLLakhs,
+  monthlyCL as monthlyCLLakhs,
+  monthlyTotalAssets as monthlyTotalAssetsLakhs,
+  monthlyOCF as monthlyOCFLakhs,
+  monthlyNetCF as monthlyNetCFLakhs,
+} from './financialData';
 
-/** Monthly revenue in Crores */
-const monthlyRevenue = [4.39, 3.88, 4.27, 4.65, 4.43, 4.05, 3.66, 3.96, 4.27, 4.06, 3.39, 1.90];
+// ── Unit conversion helpers ─────────────────────────────────────────────────
 
-/** Monthly total expenses (Direct + Indirect) in Crores */
-const monthlyExpenses = [1.90, 2.60, 3.40, 3.57, 3.09, 3.34, 3.55, 5.75, 4.79, 4.87, 4.65, 5.70];
+const LAKHS_PER_CRORE = 100;
 
-/** Monthly net profit (EBITDA proxy) in Crores */
-const monthlyNetProfit = [2.49, 1.39, 0.89, 1.09, 1.38, 0.74, 0.13, -1.78, -0.10, -0.71, -1.20, -2.36];
+const toCr = (lakhs: number): number => +(lakhs / LAKHS_PER_CRORE).toFixed(2);
+const toCrArray = (lakhs: number[]): number[] => lakhs.map(toCr);
+const sum = (arr: number[]): number => +arr.reduce((a, b) => a + b, 0).toFixed(2);
 
-/** Monthly net margin % */
-const monthlyNetMarginPct = [56.7, 35.8, 20.8, 23.4, 31.2, 18.3, 3.5, -44.9, -2.3, -17.5, -35.4, -124.2];
+/**
+ * Sum an array of Lakhs values and convert to Crores in ONE rounding step.
+ * Avoids the "sum of rounded values" drift that happens when you round each
+ * month to 2dp and then add them — e.g. 12×(rounding ±0.005) can swing a total
+ * by 0.06 Cr, which caused Revenue to show 46.91 Cr instead of the true 46.90.
+ */
+const sumLakhsAsCr = (lakhs: number[]): number =>
+  +(lakhs.reduce((a, b) => a + b, 0) / LAKHS_PER_CRORE).toFixed(2);
 
-// ── YTD Totals ──────────────────────────────────────────────────────────────
+// ── Derived monthly series (in Crores) ──────────────────────────────────────
 
-const ytdRevenue     = 46.90;   // Cr
-const ytdDirectExp   =  0.66;   // Cr
-const ytdIndirectExp = 46.55;   // Cr
-const ytdTotalExp    = 47.21;   // Cr  (direct + indirect)
-const ytdOtherIncome =  2.29;   // Cr
-const ytdNetProfit   =  1.98;   // Cr
-const ytdNetMargin   =  4.2;    // %
+const monthlyRevenue = toCrArray(monthlyRevenueLakhs);
+const monthlyExpenses = monthlyCOGSLakhs.map((c, i) =>
+  toCr(c + monthlyOpExLakhs[i]),
+);
+const monthlyOtherIncome = toCrArray(monthlyOtherIncomeLakhs);
+const monthlyEBITDA = toCrArray(monthlyEBITDALakhs);
+const monthlyPBT = toCrArray(monthlyPBTLakhs);
+const monthlyNetProfit = toCrArray(monthlyPATLakhs);
+const monthlyNetMarginPct = monthlyRevenue.map((r, i) =>
+  r === 0 ? 0 : +((monthlyNetProfit[i] / r) * 100).toFixed(1),
+);
 
-// ── OpEx Breakdown (real Tally sub-accounts, exploded TB) ───────────────────
+// ── Derived YTD totals (in Crores) ──────────────────────────────────────────
+// CRITICAL: sum in Lakhs first, convert once — see sumLakhsAsCr comment above.
 
-const opexCategories = [
-  { category: 'Performance Marketing', pct: 57, color: '#FF9F0A', amount: 23.42 },
-  { category: 'Employee Benefits',     pct: 26, color: '#BF5AF2', amount: 10.73 },
-  { category: 'IT Expenses',           pct: 8,  color: '#00FFCC', amount: 3.40 },
-  { category: 'Professional Charges',  pct: 4,  color: '#64D2FF', amount: 1.59 },
-  { category: 'Finance Charges',       pct: 3,  color: '#FFD700', amount: 1.20 },
-  { category: 'Other OpEx',            pct: 2,  color: '#8A8F98', amount: 1.13 },
+const ytdRevenue = sumLakhsAsCr(monthlyRevenueLakhs);
+const ytdDirectExp = sumLakhsAsCr(monthlyCOGSLakhs);
+const ytdIndirectExp = sumLakhsAsCr(monthlyOpExLakhs);
+const ytdTotalExp = sumLakhsAsCr(
+  monthlyCOGSLakhs.map((c, i) => c + monthlyOpExLakhs[i]),
+);
+const ytdOtherIncome = sumLakhsAsCr(monthlyOtherIncomeLakhs);
+const ytdEBITDA = sumLakhsAsCr(monthlyEBITDALakhs);
+const ytdNetProfit = sumLakhsAsCr(monthlyPATLakhs);
+const ytdTotalIncome = sumLakhsAsCr(
+  monthlyRevenueLakhs.map((r, i) => r + monthlyOtherIncomeLakhs[i]),
+);
+const ytdNetMargin = +((ytdNetProfit / ytdRevenue) * 100).toFixed(1);
+
+// ── Balance Sheet closing (Mar-26, derived from financialData) ──────────────
+
+const idxMar = 11;
+const totalAssetsCr = toCr(monthlyTotalAssetsLakhs[idxMar]);
+const totalEquityCr = toCr(monthlyEquityLakhs[idxMar]);
+const totalLiabilitiesCr = toCr(
+  monthlyNCLLakhs[idxMar] + monthlyCLLakhs[idxMar],
+);
+const investmentsMarCr = toCr(
+  monthlyNCALakhs[idxMar] - /* fixed assets, approximated from old ledger detail */ 232.56,
+);
+const fixedAssetsMarCr = 2.33; // Tally group-level Mar-26 Fixed Assets closing
+const currentAssetsMarCr = toCr(monthlyCALakhs[idxMar]);
+
+// ── OpEx breakdown (ledger-level reference, NOT reconciled to group total) ──
+// Ledger splits don't sum exactly to group-level Indirect Expenses — the shortfall
+// is year-end provisions (ESOP, audit, impairment) that live outside these buckets.
+// Kept for display rhythm; percentages recalculated against group total.
+
+const opexRawBreakdown = [
+  { category: 'Performance Marketing', amount: 23.42, color: '#FF9F0A' },
+  { category: 'Employee Benefits', amount: 10.73, color: '#BF5AF2' },
+  { category: 'IT Expenses', amount: 3.40, color: '#00FFCC' },
+  { category: 'Professional Charges', amount: 1.59, color: '#64D2FF' },
+  { category: 'Finance Charges', amount: 1.20, color: '#FFD700' },
+  { category: 'Other OpEx', amount: +(ytdIndirectExp - 40.34).toFixed(2), color: '#8A8F98' },
 ];
+const opexCategories = opexRawBreakdown.map((row) => ({
+  ...row,
+  pct: Math.round((row.amount / ytdIndirectExp) * 100),
+  unit: 'Cr' as const,
+}));
 
 // ── Exports ─────────────────────────────────────────────────────────────────
 
-const ytdTotalIncome = ytdRevenue + ytdOtherIncome; // 48.91 Cr
-
 export const financialKPIs = {
-  revenue:      { value: ytdRevenue,      unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: monthlyRevenue },
-  otherIncome:  { value: ytdOtherIncome,  unit: 'Cr', currency: '₹', color: '#64D2FF', sparkline: null },
-  totalIncome:  { value: ytdTotalIncome,  unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: null },
-  totalExpenses:{ value: ytdTotalExp,     unit: 'Cr', currency: '₹', color: '#FF453A', sparkline: monthlyExpenses },
-  netProfit:    { value: ytdNetProfit,    unit: 'Cr', currency: '₹', color: '#BF5AF2', sparkline: monthlyNetProfit },
-  netMargin:    { value: ytdNetMargin,    unit: '%',                  color: '#FFD700', sparkline: monthlyNetMarginPct },
+  revenue:      { value: ytdRevenue,     unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: monthlyRevenue },
+  otherIncome:  { value: ytdOtherIncome, unit: 'Cr', currency: '₹', color: '#64D2FF', sparkline: null },
+  totalIncome:  { value: ytdTotalIncome, unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: null },
+  totalExpenses:{ value: ytdTotalExp,    unit: 'Cr', currency: '₹', color: '#FF453A', sparkline: monthlyExpenses },
+  netProfit:    { value: ytdNetProfit,   unit: 'Cr', currency: '₹', color: '#BF5AF2', sparkline: monthlyNetProfit },
+  netMargin:    { value: ytdNetMargin,   unit: '%',                  color: '#FFD700', sparkline: monthlyNetMarginPct },
 };
 
-/**
- * Quarter-over-Quarter growth (Q3 vs Q2).
- * Q2: Jul-Sep rev = 13.13 Cr,  Q3: Oct-Dec rev = 11.88 Cr
- */
-const q2Rev = 4.65 + 4.43 + 4.05;  // 13.13
-const q3Rev = 3.66 + 3.96 + 4.27;  // 11.88
-const q2Net = 1.09 + 1.38 + 0.74;  // 3.21
-const q3Net = 0.13 + -1.78 + -0.10; // -1.75
-const q2Opex = 3.58 + 3.10 + 3.34; // 10.01
-const q3Opex = 3.55 + 5.75 + 4.79; // 14.09
+// ── Quarterly aggregates (derived) ──────────────────────────────────────────
+
+const quarterSlice = (arr: number[], q: number): number[] => arr.slice(q * 3, q * 3 + 3);
+const qSum = (arr: number[], q: number): number => sum(quarterSlice(arr, q));
+
+const q2Rev = qSum(monthlyRevenue, 1);
+const q3Rev = qSum(monthlyRevenue, 2);
+const q2Net = qSum(monthlyNetProfit, 1);
+const q3Net = qSum(monthlyNetProfit, 2);
+const q2Opex = qSum(monthlyExpenses, 1);
+const q3Opex = qSum(monthlyExpenses, 2);
+
+const pctChange = (curr: number, base: number): string => {
+  if (base === 0) return '—';
+  const sign = curr - base >= 0 ? '+' : '';
+  // For QoQ on a positive base, standard % change. For a negative base, we
+  // report the absolute swing labelled accordingly since "% of a negative" is
+  // meaningless to most readers.
+  if (base < 0) {
+    return `${sign}${(curr - base).toFixed(2)} Cr`;
+  }
+  return `${sign}${(((curr - base) / base) * 100).toFixed(1)}%`;
+};
 
 export const qoqGrowth = {
-  revenue: { label: 'REV',    change: `${((q3Rev - q2Rev) / q2Rev * 100).toFixed(1)}%`, color: '#FF453A' },
-  opex:    { label: 'OPEX',   change: `+${((q3Opex - q2Opex) / q2Opex * 100).toFixed(1)}%`, color: '#FF453A' },
-  netPnl:  { label: 'NET P&L', change: `${((q3Net - q2Net) / Math.abs(q2Net) * 100).toFixed(0)}%`, color: '#FF453A' },
+  revenue: { label: 'REV',     change: pctChange(q3Rev, q2Rev),  color: q3Rev < q2Rev ? '#FF453A' : '#00FFCC' },
+  opex:    { label: 'OPEX',    change: pctChange(q3Opex, q2Opex), color: q3Opex > q2Opex ? '#FF453A' : '#00FFCC' },
+  netPnl:  { label: 'NET P&L', change: pctChange(q3Net, q2Net),   color: q3Net < q2Net ? '#FF453A' : '#00FFCC' },
 };
 
 export const additionalMetrics = {
@@ -78,22 +164,22 @@ export const additionalMetrics = {
   otherIncome:   { label: 'Other Income',    value: ytdOtherIncome, unit: 'Cr', currency: '₹', color: '#64D2FF' },
 };
 
-/**
- * Quarterly operating expenses (Direct + Indirect).
- */
+// ── Operating Expenses (quarterly, derived from monthly OpEx+COGS) ──────────
+
+const quarterlyExpenses = [0, 1, 2, 3].map((q) => qSum(monthlyExpenses, q));
+
 export const operatingExpenses = {
   quarters: [
-    { label: 'Q1', value: 7.89,  unit: 'Cr', color: '#00FFCC' },
-    { label: 'Q2', value: 10.01, unit: 'Cr', color: '#FF9F0A' },
-    { label: 'Q3', value: 14.09, unit: 'Cr', color: '#BF5AF2' },
-    { label: 'Q4', value: 15.22, unit: 'Cr', color: '#64D2FF' },
+    { label: 'Q1', value: quarterlyExpenses[0], unit: 'Cr', color: '#00FFCC' },
+    { label: 'Q2', value: quarterlyExpenses[1], unit: 'Cr', color: '#FF9F0A' },
+    { label: 'Q3', value: quarterlyExpenses[2], unit: 'Cr', color: '#BF5AF2' },
+    { label: 'Q4', value: quarterlyExpenses[3], unit: 'Cr', color: '#64D2FF' },
   ],
   breakdown: opexCategories,
 };
 
-/**
- * P&L waterfall for donut chart — shows how revenue flows to net profit.
- */
+// ── Financial Analysis donut ────────────────────────────────────────────────
+
 export const financialAnalysis = {
   donut: [
     { segment: 'Revenue',        value: ytdRevenue,     unit: 'Cr', color: '#00FFCC' },
@@ -108,35 +194,41 @@ export const financialAnalysis = {
   },
 };
 
-/**
- * Revenue vs Expenses vs Net Profit — absolute ₹ Cr, 12-month scissors chart.
- */
+// ── Margin Trends (scissors chart) ──────────────────────────────────────────
+
 export const marginTrends = {
-  months: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
+  months: [...MONTHS],
   series: [
-    { name: 'Revenue',      color: '#00FFCC', data: monthlyRevenue },
-    { name: 'Expenses',     color: '#FF453A', data: monthlyExpenses },
-    { name: 'Net Profit',   color: '#FFD700', data: monthlyNetProfit },
+    { name: 'Revenue',    color: '#00FFCC', data: monthlyRevenue },
+    { name: 'Expenses',   color: '#FF453A', data: monthlyExpenses },
+    { name: 'Net Profit', color: '#FFD700', data: monthlyNetProfit },
   ],
 };
 
-/**
- * Cash Flow — direct method, perfectly reconciled.
- * OCF derived as balancing figure: ΔCash - ICF - FCF.
- * Monthly arrays are May25–Mar26 (11 months, Apr25 is the base).
- */
+// ── Cash Flow YTD snapshot ──────────────────────────────────────────────────
+
+const ytdOCFCr = sumLakhsAsCr(monthlyOCFLakhs);
+const ytdNetCFCr = sumLakhsAsCr(monthlyNetCFLakhs);
+
+// Liquidity = Current Assets (bank/wallets) + Investments — the actually-liquid
+// portion of NCA. Excludes Fixed Assets (property, equipment) which are not cash-
+// convertible. Previously mis-labelled as totalAssetsCr which inflated by ₹2.33 Cr.
+const totalLiquidityCr = +(currentAssetsMarCr + investmentsMarCr).toFixed(2);
+
 export const cashFlowData = {
   ytd: {
-    ocf:       { label: 'Operating CF',    value: 10.42, unit: 'Cr', currency: '₹', color: '#00FFCC' },
-    netCF:     { label: 'Net Cash Flow',   value: 0.72,  unit: 'Cr', currency: '₹', color: '#00FFCC' },
-    liquidity: { label: 'Total Liquidity', value: 113.96, unit: 'Cr', currency: '₹', color: '#BF5AF2' },
+    ocf:       { label: 'Operating CF',    value: ytdOCFCr,        unit: 'Cr', currency: '₹', color: '#00FFCC' },
+    netCF:     { label: 'Net Cash Flow',   value: ytdNetCFCr,      unit: 'Cr', currency: '₹', color: '#00FFCC' },
+    liquidity: { label: 'Total Liquidity', value: totalLiquidityCr, unit: 'Cr', currency: '₹', color: '#BF5AF2' },
   },
   monthlyOCF: {
     months: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
-    data:   [2.84, 2.90, 0.88, 1.65, 0.67, 0.58, 3.91, -1.56, 0.61, -1.17, -0.94],
+    data:   toCrArray(monthlyOCFLakhs),
     color:  '#00FFCC',
   },
 };
+
+// ── Header ──────────────────────────────────────────────────────────────────
 
 export const header = {
   company: 'SPEAKX',
@@ -147,119 +239,127 @@ export const header = {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SECTION 2+: Extended dashboard data (from Tally Trial Balance)
+// SECTION 2+: Extended dashboard data
 // ══════════════════════════════════════════════════════════════════════════════
 
 // ── P&L Waterfall ──────────────────────────────────────────────────────────
 
 export const waterfallData = [
-  { label: 'Revenue',       value: ytdRevenue,     delta: null,   color: '#00FFCC' },
-  { label: 'COGS',          value: ytdDirectExp,   delta: null,   color: '#FF453A' },
+  { label: 'Revenue',       value: ytdRevenue,                            delta: null, color: '#00FFCC' },
+  { label: 'COGS',          value: ytdDirectExp,                          delta: null, color: '#FF453A' },
   { label: 'Gross Profit',  value: +(ytdRevenue - ytdDirectExp).toFixed(2), delta: null, color: '#00FFCC' },
-  { label: 'OpEx',          value: ytdIndirectExp, delta: null,   color: '#FF453A' },
-  { label: 'Other Income',  value: ytdOtherIncome, delta: null,   color: '#64D2FF' },
-  { label: 'Net Profit',    value: ytdNetProfit,   delta: null,   color: '#FFD700' },
+  { label: 'OpEx',          value: ytdIndirectExp,                        delta: null, color: '#FF453A' },
+  { label: 'Other Income',  value: ytdOtherIncome,                        delta: null, color: '#64D2FF' },
+  { label: 'Net Profit',    value: ytdNetProfit,                          delta: null, color: '#FFD700' },
 ];
 
-// ── Profitability Ratios ───────────────────────────────────────────────────
+// ── Profitability Ratios (ROA uses derived total assets) ───────────────────
 
-const monthlyOPE = monthlyExpenses.map((e, i) => +(e / monthlyRevenue[i] * 100).toFixed(1));
-const monthlyROA = monthlyNetProfit.map((n) => +(n / 119.5 * 100).toFixed(1)); // total assets ~₹119.5 Cr
+const monthlyOPE = monthlyExpenses.map((e, i) =>
+  monthlyRevenue[i] === 0 ? 0 : +((e / monthlyRevenue[i]) * 100).toFixed(1),
+);
+const monthlyROA = monthlyNetProfit.map((n) =>
+  totalAssetsCr === 0 ? 0 : +((n / totalAssetsCr) * 100).toFixed(1),
+);
 
 export const profitabilityData = {
-  ope: { label: 'OPE RATIO', currentValue: +(ytdTotalExp / ytdRevenue * 100).toFixed(1), points: monthlyOPE, color: '#00FFCC' },
-  roa: { label: 'ROA',       currentValue: +(ytdNetProfit / 119.5 * 100).toFixed(1),     points: monthlyROA, color: '#FF00E5' },
+  ope: { label: 'OPE RATIO', currentValue: +((ytdTotalExp / ytdRevenue) * 100).toFixed(1), points: monthlyOPE, color: '#00FFCC' },
+  roa: { label: 'ROA',       currentValue: +((ytdNetProfit / totalAssetsCr) * 100).toFixed(1), points: monthlyROA, color: '#FF00E5' },
 };
 
-// ── Balance Sheet (Mar-26 snapshot from Tally TB) ──────────────────────────
+// ── Balance Sheet snapshot (Mar-26, group-level from Tally) ────────────────
 
 export const balanceSheetData = {
   equityAndLiabilities: [
-    { metric: 'Equity Share Capital',    value: 0.03,   bold: false },
-    { metric: 'Preference Share Capital', value: 0.20,  bold: false },
-    { metric: 'Reserves & Surplus',      value: 216.47, bold: false },
-    { metric: 'Total Equity',            value: 216.70, bold: true },
-    { metric: 'Secured Loans',           value: 0.13,   bold: false },
-    { metric: 'Sundry Creditors',        value: 4.24,   bold: false },
-    { metric: 'Duties & Taxes',          value: 1.76,   bold: false },
-    { metric: 'Provisions',              value: 0.42,   bold: false },
-    { metric: 'Other Current Liabilities', value: 0.44, bold: false },
-    { metric: 'Total Liabilities',       value: 6.99,   bold: true },
-    { metric: 'TOTAL',                   value: 223.69, bold: true },
+    { metric: 'Total Equity',          value: totalEquityCr, bold: true },
+    { metric: 'Loans (Secured)',       value: toCr(monthlyNCLLakhs[idxMar]), bold: false },
+    { metric: 'Current Liabilities',   value: toCr(monthlyCLLakhs[idxMar]), bold: false },
+    { metric: 'Total Liabilities',     value: totalLiabilitiesCr, bold: true },
+    { metric: 'TOTAL',                 value: +(totalEquityCr + totalLiabilitiesCr).toFixed(2), bold: true },
   ],
   assets: [
-    { metric: 'Fixed Assets (net)',      value: 2.66,   bold: false },
-    { metric: 'Investments',             value: 108.41, bold: false },
-    { metric: 'Bank Accounts',           value: 3.39,   bold: false },
-    { metric: 'Wallets & Payment Gateways', value: 3.53, bold: false },
-    { metric: 'Sundry Debtors',          value: 0.001,  bold: false },
-    { metric: 'Deposits & Prepaid',      value: 0.17,   bold: false },
-    { metric: 'Other Current Assets',    value: 0.68,   bold: false },
-    { metric: 'Loan to Director',        value: 0.75,   bold: false },
-    { metric: 'Total Assets',            value: 119.59, bold: true },
+    { metric: 'Fixed Assets (net)', value: fixedAssetsMarCr, bold: false },
+    { metric: 'Investments',        value: investmentsMarCr, bold: false },
+    { metric: 'Current Assets',     value: currentAssetsMarCr, bold: false },
+    { metric: 'Total Assets',       value: totalAssetsCr, bold: true },
   ],
 };
 
 // ── Asset Composition (for donut) ──────────────────────────────────────────
 
 export const assetComposition = {
-  centerLabel: '₹119.6 Cr',
+  centerLabel: `₹${totalAssetsCr.toFixed(1)} Cr`,
   segments: [
-    { label: 'Investments',   value: 108.41, color: '#00FFCC' },
-    { label: 'Bank Accounts', value: 3.39,   color: '#FFB800' },
-    { label: 'Wallets',       value: 3.53,   color: '#A855F7' },
-    { label: 'Fixed Assets',  value: 2.66,   color: '#FF00E5' },
-    { label: 'Other',         value: 1.60,   color: '#39FF14' },
+    { label: 'Investments',   value: investmentsMarCr,    color: '#00FFCC' },
+    { label: 'Current Assets', value: currentAssetsMarCr, color: '#FFB800' },
+    { label: 'Fixed Assets',  value: fixedAssetsMarCr,    color: '#FF00E5' },
   ],
 };
 
-// ── Cash & Liquidity ───────────────────────────────────────────────────────
+// ── Cash & Liquidity table ─────────────────────────────────────────────────
+// Ledger-level split below is from a dated reference — Tally group-level cannot
+// break Investments into FD/Bond/MF categories over HTTP. Totals reconcile to
+// group-level Investments via the "Total Investments" row.
+
+const refFixedDeposits = 35.20;
+const refCorporateBonds = 31.78;
+const refCorporateFDs = 14.28;
+const refMutualFunds = investmentsMarCr - refFixedDeposits - refCorporateBonds - refCorporateFDs;
 
 export const cashLiquidityData = [
-  { metric: 'Bank Accounts',              value: 3.39,   bold: false, sub: 'HDFC, ICICI, RBL, Kotak' },
-  { metric: 'Payment Wallets',            value: 3.53,   bold: false, sub: 'Razorpay, PhonePe, Paytm, CashFree' },
-  { metric: 'Cash & Bank Total',          value: 6.92,   bold: true },
-  { metric: 'Fixed Deposits',             value: 35.20,  bold: false, sub: 'ICICI, Kotak, RBL, HDFC, Yes Bank' },
-  { metric: 'Corporate Bonds',            value: 31.78,  bold: false },
-  { metric: 'Corporate FDs',              value: 14.28,  bold: false },
-  { metric: 'Mutual Funds',               value: 27.31,  bold: false },
-  { metric: 'Total Investments',          value: 108.41, bold: true },
-  { metric: 'TOTAL LIQUIDITY',            value: 115.33, bold: true },
+  { metric: 'Current Assets (Bank, Wallets, Other)', value: currentAssetsMarCr, bold: true, sub: 'HDFC, ICICI, Razorpay, PhonePe, deposits' },
+  { metric: 'Fixed Deposits',            value: refFixedDeposits, bold: false, sub: 'ICICI, Kotak, RBL, HDFC, Yes Bank' },
+  { metric: 'Corporate Bonds',           value: refCorporateBonds, bold: false },
+  { metric: 'Corporate FDs',             value: refCorporateFDs, bold: false },
+  { metric: 'Mutual Funds',              value: +refMutualFunds.toFixed(2), bold: false, sub: 'balancing line to Tally Investments' },
+  { metric: 'Total Investments',         value: investmentsMarCr, bold: true },
+  { metric: 'TOTAL LIQUIDITY',           value: +(currentAssetsMarCr + investmentsMarCr).toFixed(2), bold: true },
 ];
 
-// ── Cash Position Chart (monthly total liquidity = Bank + Investments) ─────
+// ── Cash Position Chart (monthly investments + current assets, derived) ────
+
+// NCA minus the approximate fixed-asset sleeve gives us investments proxy.
+// Current Assets = Bank/Wallets/Deposits combined (Tally group level doesn't split further).
+const monthlyFixedAssetsLakhsApprox = monthlyNCALakhs.map((nca, i) =>
+  // Interpolate a simple FA trajectory from opening 75.10 to closing 232.56 (Tally actuals).
+  // Used only to separate NCA into Inv vs FA for display; the sum is exact.
+  +(75.10 + ((232.56 - 75.10) * i) / (monthlyNCALakhs.length - 1)).toFixed(2),
+);
+const monthlyInvestmentsLakhs = monthlyNCALakhs.map((nca, i) =>
+  +(nca - monthlyFixedAssetsLakhsApprox[i]).toFixed(2),
+);
 
 export const cashPositionChart = {
-  months: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
-  bankBalance: [6.68, 3.73, 11.99, 1.55, 11.85, 3.77, 0.71, 3.31, 0.84, 15.05, 7.22, 33.91],
-  investments: [105.52, 124.75, 399.21, 419.28, 428.13, 1104.39, 1117.58, 1145.19, 1130.85, 1122.03, 1097.58, 1084.08],
-  totalLiquidity: [11.22, 12.85, 41.12, 42.08, 44.00, 110.82, 111.83, 114.85, 113.17, 113.71, 110.48, 111.80],
+  months: [...MONTHS],
+  bankBalance:    toCrArray(monthlyCALakhs),
+  investments:    toCrArray(monthlyInvestmentsLakhs),
+  totalLiquidity: monthlyCALakhs.map((ca, i) => toCr(ca + monthlyInvestmentsLakhs[i])),
 };
 
-// ── Historical Trends (12-month for rev, exp, net profit) ──────────────────
+// ── Historical Trends ──────────────────────────────────────────────────────
 
 export const historicalTrendsData = {
-  months: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
+  months: [...MONTHS],
   series: [
-    { label: 'Revenue',     color: '#00FFCC', points: monthlyRevenue },
-    { label: 'Expenses',    color: '#FF453A', points: monthlyExpenses },
-    { label: 'Net Profit',  color: '#FFD700', points: monthlyNetProfit },
-    { label: 'Other Income', color: '#A855F7', points: [0.01, 0.11, 0.02, 0.01, 0.04, 0.03, 0.02, 0.01, 0.42, 0.10, 0.06, 1.44] },
+    { label: 'Revenue',      color: '#00FFCC', points: monthlyRevenue },
+    { label: 'Expenses',     color: '#FF453A', points: monthlyExpenses },
+    { label: 'Net Profit',   color: '#FFD700', points: monthlyNetProfit },
+    { label: 'Other Income', color: '#A855F7', points: monthlyOtherIncome },
   ],
 };
 
-// ── Monthly Equity (Capital Account) for trends ────────────────────────────
+// ── Monthly Equity Trend (derived from financialData equity series) ────────
 
 export const equityTrend = {
-  months: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
-  data: [122.39, 122.39, 148.07, 148.39, 148.64, 214.98, 215.37, 216.70, 216.70, 216.70, 216.70, 216.70],
+  months: [...MONTHS],
+  data: toCrArray(monthlyEquityLakhs),
   color: '#A855F7',
 };
 
-// ── Debt/Equity Ratio ──────────────────────────────────────────────────────
+// ── Debt / Equity Ratio ────────────────────────────────────────────────────
 
 export const debtEquity = {
-  totalDebt: 0.13,     // Secured Loans
-  totalEquity: 216.70, // Capital Account
-  ratio: +(0.13 / 216.70).toFixed(4),
+  totalDebt:   toCr(monthlyNCLLakhs[idxMar]),
+  totalEquity: totalEquityCr,
+  ratio: +(toCr(monthlyNCLLakhs[idxMar]) / totalEquityCr).toFixed(4),
 };

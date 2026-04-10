@@ -27,13 +27,7 @@ const glassStyle: React.CSSProperties = {
 const BAR_WIDTH = 30;
 const BAR_GAP_DESKTOP = 14;
 const BAR_GAP_MOBILE = 10;
-
-const barMeta: Record<string, number> = {
-  Q1: 0.66,
-  Q2: 0.73,
-  Q3: 0.80,
-  Q4: 1.0,
-};
+const MIN_BAR_FRACTION = 0.08;
 
 /* ── growUp keyframes ───────────────────────────────── */
 
@@ -239,6 +233,18 @@ const OperatingExpenses: React.FC = () => {
   const maxPct = Math.max(...operatingExpenses.breakdown.map((b) => b.pct));
   const barGap = isMobile ? BAR_GAP_MOBILE : BAR_GAP_DESKTOP;
 
+  // Derive bar heights from actual quarter values (tallest = 1.0),
+  // floor at MIN_BAR_FRACTION so sub-cent values remain visible.
+  const maxQuarterValue = Math.max(
+    ...operatingExpenses.quarters.map((q) => Math.abs(q.value)),
+    0,
+  );
+  const heightFor = (value: number): number => {
+    if (maxQuarterValue === 0) return MIN_BAR_FRACTION;
+    const fraction = Math.abs(value) / maxQuarterValue;
+    return Math.max(fraction, MIN_BAR_FRACTION);
+  };
+
   return (
     <div
       style={{
@@ -287,7 +293,7 @@ const OperatingExpenses: React.FC = () => {
               value={q.value}
               unit={q.unit}
               color={mapColor(q.color)}
-              heightFraction={barMeta[q.label]}
+              heightFraction={heightFor(q.value)}
               index={i}
               isMobile={isMobile}
             />

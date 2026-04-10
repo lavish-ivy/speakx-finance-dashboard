@@ -1,8 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { FONTS, SIZES } from '../../theme/typography';
-import { marginTrends } from '../../data/mockData';
+import {
+  MONTHS,
+  monthlyRevenue as monthlyRevenueLakhs,
+  monthlyCOGS as monthlyCOGSLakhs,
+  monthlyTotalOpex as monthlyOpexLakhs,
+  monthlyPAT as monthlyPATLakhs,
+} from '../../data/financialData';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
+import { useMaskedValue } from '../../context/DashboardContext';
+
+const LAKHS_PER_CRORE = 100;
+
+/**
+ * Convert a Lakhs value to Crores WITHOUT intermediate rounding. Rounding is
+ * deferred to display time via `toFixed`, which means the sum of the rendered
+ * per-point values reconciles exactly with a YTD computed from the same Lakhs
+ * source. See the "sum of rounded values" drift note in `mockData.ts` and the
+ * matching fix in `src/pages/PnlPage.tsx` (PATChart, RevenueEBITDAChart).
+ */
+const lakhsToCr = (lakhs: number): number => lakhs / LAKHS_PER_CRORE;
+
+/** Sum a Lakhs array and convert to Crores with a single final rounding. */
+const sumLakhsAsCr = (lakhs: number[]): number =>
+  +(lakhs.reduce((a, b) => a + b, 0) / LAKHS_PER_CRORE).toFixed(2);
+
+// Build the three display series directly from the Lakhs source of truth.
+// Each point is an exact single /100 conversion — no per-month toFixed in Cr,
+// so labels sum back to the YTD annotations rendered in the chart header.
+const monthlyRevenueCr = monthlyRevenueLakhs.map(lakhsToCr);
+const monthlyExpensesCr = monthlyCOGSLakhs.map(
+  (c, i) => lakhsToCr(c + monthlyOpexLakhs[i]),
+);
+const monthlyNetProfitCr = monthlyPATLakhs.map(lakhsToCr);
+
+const ytdRevenueCr = sumLakhsAsCr(monthlyRevenueLakhs);
+const ytdExpensesCr = sumLakhsAsCr(
+  monthlyCOGSLakhs.map((c, i) => c + monthlyOpexLakhs[i]),
+);
+const ytdNetProfitCr = sumLakhsAsCr(monthlyPATLakhs);
+
+interface ChartSeries {
+  name: string;
+  color: string;
+  data: number[];
+  ytdCr: number;
+}
+
+const chartSeries: ChartSeries[] = [
+  { name: 'Revenue', color: '#00FFCC', data: monthlyRevenueCr, ytdCr: ytdRevenueCr },
+  { name: 'Expenses', color: '#FF453A', data: monthlyExpensesCr, ytdCr: ytdExpensesCr },
+  { name: 'Net Profit', color: '#FFD700', data: monthlyNetProfitCr, ytdCr: ytdNetProfitCr },
+];
 
 const glassCard: React.CSSProperties = {
   background: 'var(--bg-card)',
@@ -79,6 +129,7 @@ function buildAreaPath(points: { x: number; y: number }[]): string {
 export default function MarginTrends() {
   const { mapColor } = useTheme();
   const { isMobile } = useBreakpoint();
+  const mask = useMaskedValue();
   const [isHovered, setIsHovered] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [animProgress, setAnimProgress] = useState(0);
@@ -96,7 +147,8 @@ export default function MarginTrends() {
     requestAnimationFrame(tick);
   }, []);
 
-  const { months, series } = marginTrends;
+  const months = MONTHS;
+  const series = chartSeries;
 
   /* Show gridlines at every 2 Cr for readability (skip every-1 to avoid clutter) */
   const yTicks: number[] = [];
@@ -133,6 +185,8 @@ export default function MarginTrends() {
           alignItems: 'center',
           marginBottom: 8,
           flexShrink: 0,
+          gap: 8,
+          flexWrap: isMobile ? 'wrap' : undefined,
         }}
       >
         <div
@@ -148,10 +202,19 @@ export default function MarginTrends() {
           REVENUE vs EXPENSES
         </div>
 
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: isMobile ? 'wrap' : undefined }}>
-          {series.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        {/* YTD reconciliation strip — each number matches the KPI strip */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: isMobile ? 10 : 8,
+            letterSpacing: '0.05em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {series.map((s) => (
+            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <div
                 style={{
                   width: 5,
@@ -161,14 +224,14 @@ export default function MarginTrends() {
                   boxShadow: `0 0 3px ${mapColor(s.color)}`,
                 }}
               />
+              <span style={{ color: 'var(--text-secondary)' }}>{s.name}</span>
               <span
                 style={{
-                  fontFamily: FONTS.body.family,
-                  fontSize: isMobile ? 11 : 7,
-                  color: 'var(--text-secondary)',
+                  color: s.ytdCr >= 0 ? mapColor(s.color) : '#FF453A',
+                  fontWeight: 600,
                 }}
               >
-                {s.name}
+                {mask(`₹${s.ytdCr.toFixed(2)} Cr`)}
               </span>
             </div>
           ))}
