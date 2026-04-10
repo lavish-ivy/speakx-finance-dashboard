@@ -17,6 +17,13 @@ export interface DataRow {
   highlight?: boolean;
   pctRow?: boolean;
   children?: DataRow[];
+  /**
+   * Section header row — renders as a full-width uppercase divider with no
+   * numeric cells. Used in the P&L table to separate Operating from
+   * Non-Operating sections (Ind-AS 1 / Schedule III convention).
+   * When `section=true`, `values` and `ytd` are ignored.
+   */
+  section?: boolean;
 }
 
 function ToggleButton({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
@@ -68,14 +75,41 @@ function TableRow({
   formatValue,
   mask,
   depth = 0,
+  columnCount,
 }: {
   row: DataRow;
   formatValue: (val: number) => string;
   mask: (v: string) => string;
   depth?: number;
+  columnCount: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const hasChildren = row.children && row.children.length > 0;
+
+  // Section header rows render as a muted uppercase divider spanning all
+  // numeric columns. No data cells, no highlighting, no click handler.
+  if (row.section) {
+    return (
+      <tr>
+        <td
+          colSpan={columnCount}
+          style={{
+            fontFamily: "'Orbitron', monospace",
+            fontSize: 8,
+            fontWeight: 700,
+            color: 'rgba(255,255,255,0.4)',
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            padding: '10px 6px 4px 6px',
+            borderBottom: '1px solid var(--divider)',
+            background: 'rgba(255,255,255,0.02)',
+          }}
+        >
+          {row.label}
+        </td>
+      </tr>
+    );
+  }
 
   const rowStyle: React.CSSProperties = {
     borderBottom: row.bold ? '1px solid var(--divider)' : 'none',
@@ -252,6 +286,7 @@ export default function DataTable({ headers, rows, formatValue = (v) => v.toFixe
                       row={row}
                       formatValue={formatValue}
                       mask={mask}
+                      columnCount={headers.length}
                     />
                   ))}
                 </tbody>

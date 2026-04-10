@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+// Note: motion.path is used in both RevenueEBITDAChart and MarginTrendChart.
 import PageShell from './PageShell';
 import SectionHeader from '../sections/SectionHeader';
 import GlassCard from '../shared/GlassCard';
@@ -8,8 +9,9 @@ import DataTable, { type DataRow } from '../shared/DataTable';
 import { useDashboard, useMaskedValue } from '../context/DashboardContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
-  monthlyRevenue, monthlyEBITDA, monthlyPAT, monthlyTotalOpex,
-  monthlyGrossProfit, monthlyOtherIncome,
+  monthlyRevenue, monthlyEBITDA, monthlyPAT, monthlyOperatingExpenses,
+  monthlyGrossProfit, monthlyFinanceCosts, monthlyPBT,
+  STATUTORY_TAX_RATE,
   pnlStructure,
   aggregate, periodLabels, formatCr,
 } from '../data/financialData';
@@ -277,28 +279,47 @@ function RevenueEBITDAChart() {
   );
 }
 
-// ── PAT Bar Chart ──────────────────────────────────────────────────────────
+// ── Margin Trend Chart (GM%, EBITDA%, PAT%) ────────────────────────────────
+// Three-line margin trend over the selected period. For a B2C ed-tech
+// investor deck this is the single highest-signal P&L visual: it tells the
+// reader in one glance whether unit economics (GM%), operating leverage
+// (EBITDA%), and bottom line (PAT%) are trending up or down. Much more
+// useful than a raw PAT-in-Lakhs bar chart, which just duplicates the KPI
+// tile.
 
-function PATChart() {
+function MarginTrendChart() {
   const { period } = useDashboard();
   const mask = useMaskedValue();
+  const rev = aggregate(monthlyRevenue, period);
+  const gp = aggregate(monthlyGrossProfit, period);
+  const ebitda = aggregate(monthlyEBITDA, period);
   const pat = aggregate(monthlyPAT, period);
   const labels = periodLabels(period);
 
-  // YTD is computed from the Lakhs source (single conversion) so it matches
-  // the "PAT (YTD)" KPI exactly — avoids the "sum of rounded values" drift
-  // that bit us when bar labels were formatted in Cr at 2dp.
-  const ytdPatLakhs = monthlyPAT.reduce((a, b) => a + b, 0);
-  const ytdPatCr = ytdPatLakhs / 100;
+  // Margin % series — divide-by-zero safe (early FY months can have zero rev).
+  const gmPct = rev.map((r, i) => r === 0 ? 0 : +(gp[i] / r * 100).toFixed(1));
+  const ebitdaPct = rev.map((r, i) => r === 0 ? 0 : +(ebitda[i] / r * 100).toFixed(1));
+  const patPct = rev.map((r, i) => r === 0 ? 0 : +(pat[i] / r * 100).toFixed(1));
 
-  // Per-bar labels stay in Lakhs — that's the native precision of the source
-  // data (financialData.monthlyPAT is 2dp in Lakhs), so each bar label is
-  // exact AND the bars sum to the YTD headline without drift. Mixing units on
-  // the same page is deliberate: monthly granularity reads naturally in L,
-  // the aggregate reads naturally in Cr.
-  const formatLakhs = (lakhs: number): string => `₹${lakhs.toFixed(1)} L`;
+  // YTD margins use Lakhs source with single /100 conversion for display
+  // parity with the KPI strip (same anti-drift pattern as RevenueEBITDAChart).
+  const ytdRev = monthlyRevenue.reduce((a, b) => a + b, 0);
+  const ytdGP = monthlyGrossProfit.reduce((a, b) => a + b, 0);
+  const ytdEB = monthlyEBITDA.reduce((a, b) => a + b, 0);
+  const ytdPAT = monthlyPAT.reduce((a, b) => a + b, 0);
+  const ytdGMPct = ytdRev === 0 ? 0 : (ytdGP / ytdRev * 100);
+  const ytdEBPct = ytdRev === 0 ? 0 : (ytdEB / ytdRev * 100);
+  const ytdPATPct = ytdRev === 0 ? 0 : (ytdPAT / ytdRev * 100);
 
-  const maxAbs = Math.max(...pat.map(Math.abs)) * 1.2 || 1;
+  const allVals = [...gmPct, ...ebitdaPct, ...patPct];
+  const rawMin = Math.min(0, ...allVals);
+  const rawMax = Math.max(...allVals);
+  // Add headroom so labels don't clip the top; widen by 10pp when range is tiny.
+  const span = Math.max(rawMax - rawMin, 10);
+  const minVal = rawMin - span * 0.1;
+  const maxVal = rawMax + span * 0.15;
+  const range = maxVal - minVal || 1;
+
   const w = 440;
   const h = 180;
   const padL = 42;
@@ -307,8 +328,23 @@ function PATChart() {
   const padB = 28;
   const cW = w - padL - padR;
   const cH = h - padT - padB;
-  const barW = Math.min(24, cW / labels.length * 0.55);
-  const zeroY = padT + cH / 2;
+
+  const toX = (i: number) => padL + (i + 0.5) / labels.length * cW;
+  const toY = (v: number) => padT + cH - ((v - minVal) / range) * cH;
+
+  const series = [
+    { name: 'GM%', color: '#00FFCC', data: gmPct, ytd: ytdGMPct },
+    { name: 'EBITDA%', color: '#FF9F0A', data: ebitdaPct, ytd: ytdEBPct },
+    { name: 'PAT%', color: '#BF5AF2', data: patPct, ytd: ytdPATPct },
+  ];
+
+  const buildPath = (data: number[]): string => {
+    const pts = data.map((v, i) => ({ x: toX(i), y: toY(v) }));
+    return catmullRomPath(pts);
+  };
+
+  const ticks = 5;
+  const tickVals = Array.from({ length: ticks }, (_, i) => minVal + (range / (ticks - 1)) * i);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -327,57 +363,113 @@ function PATChart() {
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
         }}>
-          Profit After Tax
+          Margin Trend
         </div>
         <div style={{
+          display: 'flex',
+          gap: 8,
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: 9,
-          color: ytdPatCr >= 0 ? '#00FFCC' : '#FF453A',
           letterSpacing: '0.05em',
           whiteSpace: 'nowrap',
         }}>
-          {mask(`YTD ₹${ytdPatCr.toFixed(2)} Cr`)}
+          {series.map((s) => (
+            <span key={s.name} style={{ color: s.color }}>
+              {mask(`${s.name} ${s.ytd.toFixed(1)}%`)}
+            </span>
+          ))}
         </div>
       </div>
+
+      <div style={{ display: 'flex', gap: 14, marginBottom: 4, flexShrink: 0 }}>
+        {series.map((s) => (
+          <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 10, height: 2, background: s.color, borderRadius: 1 }} />
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: 'rgba(255,255,255,0.5)' }}>{s.name}</span>
+          </div>
+        ))}
+      </div>
+
       <div style={{ flex: 1, minHeight: 0 }}>
         <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
-          <line x1={padL} y1={zeroY} x2={padL + cW} y2={zeroY} stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
+          {/* Gridlines + y-axis labels */}
+          {tickVals.map((tv) => (
+            <g key={tv}>
+              <line
+                x1={padL}
+                y1={toY(tv)}
+                x2={padL + cW}
+                y2={toY(tv)}
+                stroke="var(--chart-gridline)"
+                strokeWidth={0.5}
+                strokeDasharray={Math.abs(tv) < 0.01 ? undefined : '3,3'}
+              />
+              <text
+                x={padL - 4}
+                y={toY(tv) + 3}
+                textAnchor="end"
+                fill="var(--text-muted)"
+                fontSize={7}
+                fontFamily="'JetBrains Mono', monospace"
+              >
+                {tv.toFixed(0)}%
+              </text>
+            </g>
+          ))}
 
-          {pat.map((v, i) => {
-            const cx = padL + (i + 0.5) / labels.length * cW;
-            const barH = Math.abs(v) / maxAbs * (cH / 2);
-            const barY = v >= 0 ? zeroY - barH : zeroY;
-            const fillColor = v >= 0 ? '#00FFCC' : '#FF453A';
+          {/* Zero baseline highlighted */}
+          {minVal < 0 && maxVal > 0 && (
+            <line
+              x1={padL}
+              y1={toY(0)}
+              x2={padL + cW}
+              y2={toY(0)}
+              stroke="rgba(255,255,255,0.25)"
+              strokeWidth={1}
+            />
+          )}
+
+          {/* Margin lines */}
+          {series.map((s) => (
+            <motion.path
+              key={s.name}
+              d={buildPath(s.data)}
+              stroke={s.color}
+              strokeWidth={2}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 1, ease: 'easeInOut' }}
+              style={{ filter: `drop-shadow(0 0 3px ${s.color}80)` }}
+            />
+          ))}
+
+          {/* End-of-period value labels */}
+          {series.map((s) => {
+            const lastIdx = s.data.length - 1;
             return (
-              <g key={i}>
-                <rect
-                  x={cx - barW / 2}
-                  y={barY}
-                  width={barW}
-                  height={barH}
-                  rx={2}
-                  fill={fillColor}
-                  opacity={0.75}
-                />
-                <text
-                  x={cx}
-                  y={v >= 0 ? barY - 4 : barY + barH + 10}
-                  textAnchor="middle"
-                  fill={fillColor}
-                  fontSize={7}
-                  fontFamily="'JetBrains Mono', monospace"
-                  opacity={0.8}
-                >
-                  {mask(formatLakhs(v))}
-                </text>
-              </g>
+              <text
+                key={`lbl-${s.name}`}
+                x={toX(lastIdx)}
+                y={toY(s.data[lastIdx]) - 5}
+                textAnchor="end"
+                fill={s.color}
+                fontSize={7}
+                fontFamily="'JetBrains Mono', monospace"
+                opacity={0.9}
+              >
+                {mask(`${s.data[lastIdx].toFixed(1)}%`)}
+              </text>
             );
           })}
 
+          {/* X-axis labels */}
           {labels.map((m, i) => (
             <text
               key={m}
-              x={padL + (i + 0.5) / labels.length * cW}
+              x={toX(i)}
               y={h - 4}
               textAnchor="middle"
               fill="var(--text-muted)"
@@ -403,16 +495,27 @@ export default function PnlPage() {
   const totalGP = sumArr(monthlyGrossProfit);
   const totalEBITDA = sumArr(monthlyEBITDA);
   const totalPAT = sumArr(monthlyPAT);
-  const totalOpex = sumArr(monthlyTotalOpex);
-  const totalOtherInc = sumArr(monthlyOtherIncome);
+  // Operating Expenses = Total Indirect Expenses − Finance Costs. This is
+  // the number that flows into the EBITDA derivation on the investor P&L.
+  const totalOpex = sumArr(monthlyOperatingExpenses);
+  const totalFinCost = sumArr(monthlyFinanceCosts);
+
+  // Estimated tax provision: actual current tax is booked at year-end by
+  // the tax advisor (monthlyTax is 0 until then). For a board/investor
+  // view we show the provision at the statutory 115BAA rate so readers
+  // see a realistic post-tax bottom line instead of a misleading zero-tax
+  // PAT. Only applied when PBT is positive (no benefit recognised on losses).
+  const totalPBT = sumArr(monthlyPBT);
+  const estTaxProvision = totalPBT > 0 ? +(totalPBT * STATUTORY_TAX_RATE).toFixed(2) : 0;
+  const estPATPostProvision = +(totalPBT - estTaxProvision).toFixed(2);
 
   const kpis = [
     { label: 'YTD Revenue', value: formatCr(totalRev), sub: `${totalRev.toFixed(1)} L`, positive: true },
     { label: 'Gross Margin', value: `${((totalGP / totalRev) * 100).toFixed(1)}%`, sub: `GP: ${formatCr(totalGP)}`, positive: true },
     { label: 'EBITDA (YTD)', value: formatCr(totalEBITDA), sub: `Margin: ${((totalEBITDA / totalRev) * 100).toFixed(1)}%`, positive: totalEBITDA > 0, negative: totalEBITDA < 0 },
-    { label: 'PAT (YTD)', value: formatCr(totalPAT), sub: `${totalPAT.toFixed(1)} L`, positive: totalPAT > 0, negative: totalPAT < 0 },
-    { label: 'Total OpEx', value: formatCr(totalOpex), sub: `${((totalOpex / totalRev) * 100).toFixed(1)}% of revenue` },
-    { label: 'Other Income', value: formatCr(totalOtherInc), sub: `${totalOtherInc.toFixed(1)} L` },
+    { label: 'PAT (YTD)', value: formatCr(totalPAT), sub: `Est. post-tax: ${formatCr(estPATPostProvision)}`, positive: totalPAT > 0, negative: totalPAT < 0 },
+    { label: 'Operating Expenses', value: formatCr(totalOpex), sub: `${((totalOpex / totalRev) * 100).toFixed(1)}% of revenue` },
+    { label: 'Finance Costs', value: formatCr(totalFinCost), sub: `${((totalFinCost / totalRev) * 100).toFixed(2)}% of revenue`, negative: totalFinCost > 0 },
   ];
 
   const labels = periodLabels(period);
@@ -425,6 +528,7 @@ export default function PnlPage() {
     indent: row.indent,
     highlight: row.highlight,
     pctRow: row.pctRow,
+    section: row.section,
     children: row.children?.map((c) => ({
       label: c.label,
       values: aggregate(c.monthly, period),
@@ -450,7 +554,7 @@ export default function PnlPage() {
           <RevenueEBITDAChart />
         </GlassCard>
         <GlassCard delay={0.1}>
-          <PATChart />
+          <MarginTrendChart />
         </GlassCard>
       </div>
 
@@ -460,6 +564,36 @@ export default function PnlPage() {
           rows={tableRows}
           formatValue={(v) => formatCr(v)}
         />
+
+        {/* Tax-provision note: explains the 0 booked tax and shows the
+            estimated YTD provision at the statutory 115BAA rate so board
+            readers don't misinterpret "Income Tax = 0" as a data bug. */}
+        <div style={{
+          marginTop: 8,
+          padding: '8px 12px',
+          background: 'rgba(255, 159, 10, 0.06)',
+          border: '1px solid rgba(255, 159, 10, 0.2)',
+          borderRadius: 6,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 9,
+          lineHeight: 1.5,
+          color: 'rgba(255,255,255,0.7)',
+        }}>
+          <div style={{
+            fontSize: 8,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: '#FF9F0A',
+            marginBottom: 2,
+          }}>
+            Note — Tax Provision
+          </div>
+          Income Tax is booked at year-end close (currently ₹0 in Tally).
+          Applying the statutory 115BAA rate of <b>{(STATUTORY_TAX_RATE * 100).toFixed(2)}%</b> to
+          YTD PBT of <b>{formatCr(totalPBT)}</b> gives an estimated provision
+          of <b style={{ color: '#FF453A' }}>{formatCr(estTaxProvision)}</b>,
+          for an estimated post-provision PAT of <b style={{ color: '#00FFCC' }}>{formatCr(estPATPostProvision)}</b>.
+        </div>
       </div>
     </PageShell>
   );

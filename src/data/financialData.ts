@@ -56,18 +56,48 @@ export const opexMonthly = {
   otherMisc:           [0.39, 0.77, 0.35, 0.79, 0.88, 0.05, 0.67, 5.00, 1.23, 0.28, 0.86, 0.00],
 };
 
-/** Total OpEx per month (Indirect Expenses period activity, Tally cache 2026-04-09) */
+/**
+ * Total OpEx per month (Indirect Expenses period activity, Tally cache 2026-04-09).
+ *
+ * This is the raw Tally group-level total and INCLUDES Finance Charges —
+ * because at the Tally TB level, interest lives inside Indirect Expenses.
+ * For any "total cash indirect spend" computation (cash flow view, mockData,
+ * MarginTrends) this is the correct number to use: interest IS real cash
+ * that left the business.
+ *
+ * For the P&L waterfall (investor / Ind-AS view) we split Finance Costs out
+ * below EBIT. See `monthlyFinanceCosts` and `monthlyOperatingExpenses`.
+ */
 export const monthlyTotalOpex = [183.35, 253.40, 333.04, 351.61, 303.55, 328.93, 350.17, 570.06, 474.17, 482.66, 459.98, 564.25];
 
 /**
- * EBITDA = Gross Profit − Total OpEx (auto-computed — DO NOT store).
- *
- * Prior versions stored a hand-entered array here that was actually
- * `GP − OpEx + OtherIncome` (i.e. PBT-ex-depreciation). That silent mislabel
- * caused the "₹1.98 Cr net profit" that leaked into mockData. True YTD EBITDA
- * is −₹0.31 Cr — the business flipped loss-making from Nov-25 onwards.
+ * Finance Costs per month (pulled out of `opexMonthly.financeCharges` so it
+ * can sit below EBIT on the P&L waterfall, per Ind-AS 1 / Schedule III).
+ * Under Ind-AS, finance costs are a separate line after EBIT — EBITDA must
+ * be reported BEFORE interest. Previously these were buried inside OpEx,
+ * which understated EBITDA by ~₹1.20 Cr YTD.
  */
-export const monthlyEBITDA = monthlyGrossProfit.map((g, i) => +(g - monthlyTotalOpex[i]).toFixed(2));
+export const monthlyFinanceCosts = [...opexMonthly.financeCharges];
+
+/**
+ * Operating Expenses = Total OpEx − Finance Costs.
+ * This is the number that flows into the EBITDA derivation (GP − OpEx ex-fin).
+ */
+export const monthlyOperatingExpenses = monthlyTotalOpex.map(
+  (o, i) => +(o - monthlyFinanceCosts[i]).toFixed(2),
+);
+
+/**
+ * EBITDA = Gross Profit − Operating Expenses (ex-Finance Costs).
+ *
+ * NOTE: This is the correct Ind-AS / investor-deck definition. Prior
+ * definition `GP − TotalOpEx` was silently subtracting interest, turning
+ * the YTD headline from +₹0.89 Cr to −₹0.31 Cr. Finance Costs now appear
+ * as their own line between EBIT and PBT.
+ */
+export const monthlyEBITDA = monthlyGrossProfit.map(
+  (g, i) => +(g - monthlyOperatingExpenses[i]).toFixed(2),
+);
 
 /** Depreciation (Tally group-level is folded into Indirect Expenses — kept as 0 to avoid double-count) */
 export const monthlyDepreciation = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -92,13 +122,37 @@ export const otherIncomeMonthly = {
 /** Other Income (Indirect Incomes period activity, Tally cache 2026-04-09) */
 export const monthlyOtherIncome = [0.57, 11.30, 1.85, 1.21, 4.10, 3.46, 2.18, 1.43, 42.39, 10.43, 5.55, 144.38];
 
-/** PBT = EBIT + Other Income (auto-computed) */
-export const monthlyPBT = monthlyEBIT.map((e, i) => +(e + monthlyOtherIncome[i]).toFixed(2));
+/**
+ * PBT = EBIT − Finance Costs + Other Income (auto-computed).
+ *
+ * Finance Costs are now below EBIT (Ind-AS waterfall), so the total PBT
+ * number is unchanged from the prior `EBIT + OI` formulation — we've only
+ * moved the classification. YTD PBT still ≈ ₹1.98 Cr, same as before.
+ */
+export const monthlyPBT = monthlyEBIT.map(
+  (e, i) => +(e - monthlyFinanceCosts[i] + monthlyOtherIncome[i]).toFixed(2),
+);
 
-/** Income Tax (not yet booked in FY26 group TB — placeholder) */
+/**
+ * Income Tax booked in Tally month-by-month. Zero throughout FY26 because
+ * current tax provision is recognized at year-end close, not on a monthly
+ * accrual basis. This is the CASH-/BOOKING-view number (for the Cash P&L).
+ *
+ * For the investor P&L view, see `STATUTORY_TAX_RATE` below — the dashboard
+ * computes an estimated provision at the statutory rate on YTD PBT and
+ * surfaces both "Booked PAT" and "Estimated PAT (post-provision)".
+ */
 export const monthlyTax = [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00];
 
-/** PAT = PBT − Tax (auto-computed) */
+/**
+ * Indian statutory corporate tax rate for a domestic company opting into
+ * Section 115BAA (concessional regime): 22% base + 10% surcharge + 4% cess
+ * = 25.168% ≈ 25.17%. Used to compute the P&L provision estimate; actual
+ * provision is booked by the tax advisor at year-end close.
+ */
+export const STATUTORY_TAX_RATE = 0.2517;
+
+/** PAT = PBT − Tax (auto-computed — equals PBT until YE provision is booked) */
 export const monthlyPAT = monthlyPBT.map((p, i) => +(p - monthlyTax[i]).toFixed(2));
 
 // ── Balance Sheet Monthly Data (Rs. Lakhs, month-end closing, Tally cache 2026-04-09) ──
@@ -184,11 +238,22 @@ export interface PnlRow {
   highlight?: boolean;
   pctRow?: boolean;
   children?: PnlRow[];
+  /** Section header row (no numeric data — see DataTable.DataRow.section). */
+  section?: boolean;
 }
 
 const sumArr = (arr: number[]) => +arr.reduce((a, b) => a + b, 0).toFixed(2);
 
+/** Section header helper — 12 zero-filled values so aggregate() works across periods. */
+const sectionRow = (label: string): PnlRow => ({
+  label,
+  monthly: Array(12).fill(0),
+  ytd: 0,
+  section: true,
+});
+
 export const pnlStructure: PnlRow[] = [
+  sectionRow('— Operating P&L —'),
   {
     label: 'Total Revenue',
     monthly: monthlyRevenue,
@@ -214,16 +279,18 @@ export const pnlStructure: PnlRow[] = [
     pctRow: true,
   },
   {
-    label: 'Total OpEx',
-    monthly: monthlyTotalOpex,
-    ytd: sumArr(monthlyTotalOpex),
+    // Parent uses monthlyOperatingExpenses (TotalOpex − FinanceCosts) so the
+    // P&L waterfall subtracts only true operating costs to arrive at EBITDA.
+    // Finance Costs moved to its own line below EBIT per Ind-AS 1.
+    label: 'Operating Expenses',
+    monthly: monthlyOperatingExpenses,
+    ytd: sumArr(monthlyOperatingExpenses),
     bold: true,
     children: [
       { label: 'Employee Benefits', monthly: opexMonthly.employeeBenefits, ytd: sumArr(opexMonthly.employeeBenefits), indent: true },
       { label: 'Performance Marketing', monthly: opexMonthly.performanceMarketing, ytd: sumArr(opexMonthly.performanceMarketing), indent: true },
       { label: 'IT Expenses', monthly: opexMonthly.itExpenses, ytd: sumArr(opexMonthly.itExpenses), indent: true },
       { label: 'Professional Charges', monthly: opexMonthly.professionalCharges, ytd: sumArr(opexMonthly.professionalCharges), indent: true },
-      { label: 'Finance Charges', monthly: opexMonthly.financeCharges, ytd: sumArr(opexMonthly.financeCharges), indent: true },
       { label: 'Audit Fees', monthly: opexMonthly.auditFees, ytd: sumArr(opexMonthly.auditFees), indent: true },
       { label: 'Freelancer Services', monthly: opexMonthly.freelancerServices, ytd: sumArr(opexMonthly.freelancerServices), indent: true },
       { label: 'Rent', monthly: opexMonthly.rent, ytd: sumArr(opexMonthly.rent), indent: true },
@@ -259,6 +326,14 @@ export const pnlStructure: PnlRow[] = [
     ytd: sumArr(monthlyEBIT),
     bold: true,
   },
+  sectionRow('— Non-Operating —'),
+  {
+    // Finance Costs (interest on loans, bank charges, LC charges) — pulled
+    // out of OpEx and placed below EBIT per Ind-AS 1 / Schedule III.
+    label: 'Finance Costs',
+    monthly: monthlyFinanceCosts,
+    ytd: sumArr(monthlyFinanceCosts),
+  },
   {
     label: 'Total Other Income',
     monthly: monthlyOtherIncome,
@@ -278,13 +353,14 @@ export const pnlStructure: PnlRow[] = [
     bold: true,
     highlight: true,
   },
+  sectionRow('— Taxation —'),
   {
-    label: 'Income Tax',
+    label: 'Income Tax (booked)',
     monthly: monthlyTax,
     ytd: sumArr(monthlyTax),
   },
   {
-    label: 'Profit After Tax',
+    label: 'PAT (pre-provision)',
     monthly: monthlyPAT,
     ytd: sumArr(monthlyPAT),
     bold: true,
@@ -374,14 +450,15 @@ export function formatPct(val: number): string {
 
 // ── OpEx series for stacked chart ──────────────────────────────────────────
 
+// OpEx chart series — Finance Charges excluded because they now sit below
+// EBIT as Finance Costs. Chart shows operating-only cost composition.
 export const opexChartSeries = [
   { label: 'Performance Marketing', color: '#FF9F0A', data: opexMonthly.performanceMarketing },
   { label: 'Employee Benefits', color: '#BF5AF2', data: opexMonthly.employeeBenefits },
   { label: 'IT Expenses', color: '#00FFCC', data: opexMonthly.itExpenses },
   { label: 'Professional Charges', color: '#64D2FF', data: opexMonthly.professionalCharges },
-  { label: 'Finance Charges', color: '#FFD700', data: opexMonthly.financeCharges },
   { label: 'Other OpEx', color: '#8A8F98', data: (() => {
-    // Sum all the smaller categories
+    // Sum all the smaller categories (excluding finance charges)
     const other = opexMonthly.auditFees.map((_, i) =>
       +(opexMonthly.auditFees[i] + opexMonthly.freelancerServices[i] + opexMonthly.officeExpenses[i] +
         opexMonthly.rent[i] + opexMonthly.travelConveyance[i] + opexMonthly.telephone[i] +
@@ -440,24 +517,35 @@ function validateFinancialData(): ValidationIssue[] {
     }
   }
 
-  // 3. EBITDA derivation holds (stored EBITDA = GP − TotalOpEx)
+  // 3. EBITDA derivation holds (EBITDA = GP − Operating Expenses ex-finance)
   for (let i = 0; i < 12; i++) {
-    const expected = monthlyGrossProfit[i] - monthlyTotalOpex[i];
+    const expected = monthlyGrossProfit[i] - monthlyOperatingExpenses[i];
     if (Math.abs(monthlyEBITDA[i] - expected) > tol) {
       issues.push({
         check: 'ebitda-formula',
-        detail: `${MONTHS[i]}: EBITDA ${monthlyEBITDA[i]} ≠ GP ${monthlyGrossProfit[i]} − OpEx ${monthlyTotalOpex[i]}`,
+        detail: `${MONTHS[i]}: EBITDA ${monthlyEBITDA[i]} ≠ GP ${monthlyGrossProfit[i]} − OpEx ${monthlyOperatingExpenses[i]}`,
       });
     }
   }
 
-  // 4. PBT equals EBIT + OtherIncome
+  // 4. PBT equals EBIT − Finance Costs + Other Income (Ind-AS waterfall)
   for (let i = 0; i < 12; i++) {
-    const expected = monthlyEBIT[i] + monthlyOtherIncome[i];
+    const expected = monthlyEBIT[i] - monthlyFinanceCosts[i] + monthlyOtherIncome[i];
     if (Math.abs(monthlyPBT[i] - expected) > tol) {
       issues.push({
         check: 'pbt-formula',
-        detail: `${MONTHS[i]}: PBT ${monthlyPBT[i]} ≠ EBIT ${monthlyEBIT[i]} + OI ${monthlyOtherIncome[i]}`,
+        detail: `${MONTHS[i]}: PBT ${monthlyPBT[i]} ≠ EBIT ${monthlyEBIT[i]} − Fin ${monthlyFinanceCosts[i]} + OI ${monthlyOtherIncome[i]}`,
+      });
+    }
+  }
+
+  // 5. Operating Expenses + Finance Costs reconcile to Total OpEx (Tally group)
+  for (let i = 0; i < 12; i++) {
+    const expected = monthlyOperatingExpenses[i] + monthlyFinanceCosts[i];
+    if (Math.abs(expected - monthlyTotalOpex[i]) > tol) {
+      issues.push({
+        check: 'opex-split',
+        detail: `${MONTHS[i]}: OpEx-ex-fin ${monthlyOperatingExpenses[i]} + Finance ${monthlyFinanceCosts[i]} ≠ Total OpEx ${monthlyTotalOpex[i]}`,
       });
     }
   }
