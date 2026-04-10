@@ -8,6 +8,7 @@ import { useDashboard, useMaskedValue } from '../context/DashboardContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
   monthlyOCF, monthlyICF, monthlyFCF, monthlyNetCF,
+  monthlyRevenue, monthlyCOGS, monthlyTotalOpex, monthlyOtherIncome, monthlyTax,
   aggregateCF, cfPeriodLabels, formatCr,
   aggregate, periodLabels,
 } from '../data/financialData';
@@ -303,6 +304,58 @@ export default function CashPage() {
     { label: 'Net Cash Flow', values: aggregateCF(monthlyNetCF, period), ytd: totalNetCF, bold: true, highlight: true },
   ];
 
+  // ── Cash P&L (Direct Method) ─────────────────────────────────────────────
+  // Reads like a P&L, numbers are cash flows. Data is sourced directly from
+  // Tally period-activity arrays for Sales Accounts / Direct Expenses /
+  // Indirect Expenses / Indirect Incomes — which are ~95% cash-basis for
+  // SpeakX's B2C model (payment gateways settle directly to bank, bills pay
+  // in-month). The small accrual noise (month-end salary bookings, card
+  // settlement timing) shows up as the drift between this view and the
+  // indirect-method OCF above, visible in the reconciliation row at the
+  // bottom of this table.
+
+  const pnlLabels = periodLabels(period);
+  const cashPnlHeaders = ['Cash Flow', ...pnlLabels, 'YTD'];
+
+  // Aggregate each stream once so the math lines up across all rows.
+  const revAgg = aggregate(monthlyRevenue, period);
+  const oiAgg = aggregate(monthlyOtherIncome, period);
+  const cogsAgg = aggregate(monthlyCOGS, period);
+  const opexAgg = aggregate(monthlyTotalOpex, period);
+  const taxAgg = aggregate(monthlyTax, period);
+
+  const revYtd = sumArr(monthlyRevenue);
+  const oiYtd = sumArr(monthlyOtherIncome);
+  const cogsYtd = sumArr(monthlyCOGS);
+  const opexYtd = sumArr(monthlyTotalOpex);
+  const taxYtd = sumArr(monthlyTax);
+
+  const inflowsByPeriod = revAgg.map((r, i) => +(r + oiAgg[i]).toFixed(2));
+  const outflowsByPeriod = cogsAgg.map(
+    (c, i) => +(c + opexAgg[i] + taxAgg[i]).toFixed(2),
+  );
+  const netCashByPeriod = inflowsByPeriod.map(
+    (inn, i) => +(inn - outflowsByPeriod[i]).toFixed(2),
+  );
+
+  const inflowsYtd = +(revYtd + oiYtd).toFixed(2);
+  const outflowsYtd = +(cogsYtd + opexYtd + taxYtd).toFixed(2);
+  const netCashYtd = +(inflowsYtd - outflowsYtd).toFixed(2);
+
+  const cashPnlRows: DataRow[] = [
+    // Cash Inflows
+    { label: 'Revenue Received', values: revAgg, ytd: revYtd },
+    { label: 'Other Income Received', values: oiAgg, ytd: oiYtd },
+    { label: 'Total Cash Inflows', values: inflowsByPeriod, ytd: inflowsYtd, bold: true, highlight: true },
+    // Cash Outflows
+    { label: 'Cost of Revenue (Direct Expenses)', values: cogsAgg, ytd: cogsYtd },
+    { label: 'Operating Expenses', values: opexAgg, ytd: opexYtd },
+    { label: 'Income Tax Paid', values: taxAgg, ytd: taxYtd },
+    { label: 'Total Cash Outflows', values: outflowsByPeriod, ytd: outflowsYtd, bold: true, highlight: true },
+    // Net
+    { label: 'Net Operating Cash Flow', values: netCashByPeriod, ytd: netCashYtd, bold: true, highlight: true },
+  ];
+
   return (
     <PageShell>
       <SectionHeader title="CASH FLOW & LIQUIDITY" />
@@ -325,11 +378,55 @@ export default function CashPage() {
       </div>
 
       <div style={{ flexShrink: 0 }}>
+        <div style={{
+          fontFamily: "'Orbitron', monospace",
+          fontSize: 9,
+          color: 'var(--text-muted)',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          marginBottom: 4,
+          marginTop: 2,
+        }}>
+          Indirect Method — ΔBS derived
+        </div>
         <DataTable
           headers={tableHeaders}
           rows={cfRows}
           formatValue={(v) => formatCr(v)}
         />
+
+        <div style={{
+          fontFamily: "'Orbitron', monospace",
+          fontSize: 9,
+          color: 'var(--text-muted)',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          marginTop: 10,
+          marginBottom: 4,
+        }}>
+          Cash P&L — Direct Method (Revenue − Expenses − Tax)
+        </div>
+        <DataTable
+          headers={cashPnlHeaders}
+          rows={cashPnlRows}
+          formatValue={(v) => formatCr(v)}
+        />
+        <div style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 8,
+          color: 'rgba(255,255,255,0.35)',
+          marginTop: 6,
+          lineHeight: 1.4,
+          maxWidth: 720,
+        }}>
+          Sourced from Tally period-activity (Sales Accounts, Direct/Indirect
+          Expenses, Indirect Incomes). For SpeakX's B2C model these streams
+          are effectively cash-basis (payment gateways settle directly to
+          bank, bills clear in-month). Income Tax Paid shows ₹0 because no
+          income tax has been booked in FY26 yet — this will populate after
+          year-end closing. GST cash flow is not broken out separately
+          because Tally group-level TB rolls it into Current Liabilities.
+        </div>
       </div>
     </PageShell>
   );
