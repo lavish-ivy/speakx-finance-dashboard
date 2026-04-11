@@ -14,6 +14,7 @@ import {
   aggregateCF, cfPeriodLabels, formatCr,
   aggregate, periodLabels,
 } from '../data/financialData';
+import { niceAxis } from '../utils/chartMath';
 
 const sumArr = (a: number[]) => a.reduce((s, v) => s + v, 0);
 
@@ -34,25 +35,6 @@ function catmullRomPath(points: { x: number; y: number }[]): string {
     d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
   }
   return d;
-}
-
-// ── Nice-number axis helper (symmetric padding, clean ticks) ───────────────
-
-function niceAxis(min: number, max: number, targetTicks = 5): { lo: number; hi: number; ticks: number[] } {
-  if (min === max) {
-    const pad = Math.max(Math.abs(min) * 0.1, 1);
-    return niceAxis(min - pad, max + pad, targetTicks);
-  }
-  const span = max - min;
-  const rawStep = span / (targetTicks - 1);
-  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  const norm = rawStep / mag;
-  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
-  const lo = Math.floor(min / step) * step;
-  const hi = Math.ceil(max / step) * step;
-  const ticks: number[] = [];
-  for (let v = lo; v <= hi + step * 0.5; v += step) ticks.push(+v.toFixed(6));
-  return { lo, hi, ticks };
 }
 
 // ── Grouped Cash Flow Bar Chart (OCF / ICF / FinCF / FCF) ──────────────────
