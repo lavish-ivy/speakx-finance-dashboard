@@ -34,7 +34,6 @@ import {
   monthlyTotalAssets as monthlyTotalAssetsLakhs,
   monthlyOCF as monthlyOCFLakhs,
   monthlyFreeCashFlow as monthlyFCFLakhs,
-  STATUTORY_TAX_RATE,
 } from './financialData';
 
 // ── Unit conversion helpers ─────────────────────────────────────────────────
@@ -75,15 +74,10 @@ const ytdTotalExp = sumLakhsAsCr(
   monthlyCOGSLakhs.map((c, i) => c + monthlyOpExLakhs[i]),
 );
 const ytdOtherIncome = sumLakhsAsCr(monthlyOtherIncomeLakhs);
-// Booked PBT — equals PAT in the raw Tally numbers because the current-year
-// tax provision is only booked at year-end close by the tax advisor.
+// Booked PBT — this is the Tally-booked bottom line for FY 2025-26. The
+// current-year income tax provision is only posted at year-end close by the
+// tax advisor, so there is no PAT to surface until audit close.
 const ytdPBT = sumLakhsAsCr(monthlyPBTLakhs);
-
-// Estimated post-provision PAT — computed at the statutory 115BAA rate so the
-// HUD surfaces the same "Booked PBT vs Estimated PAT" narrative the P&L page
-// uses. Only applied when PBT is positive (no benefit recognised on losses).
-const estTaxProvisionCr = ytdPBT > 0 ? +(ytdPBT * STATUTORY_TAX_RATE).toFixed(2) : 0;
-const estPATPostProvisionCr = +(ytdPBT - estTaxProvisionCr).toFixed(2);
 
 const ytdTotalIncome = sumLakhsAsCr(
   monthlyRevenueLakhs.map((r, i) => r + monthlyOtherIncomeLakhs[i]),
@@ -131,10 +125,10 @@ const opexCategories = opexRawBreakdown.map((row) => ({
 // ── Exports ─────────────────────────────────────────────────────────────────
 
 /**
- * Top-line KPI strip for the HUD. `pbt` is the Tally-booked pre-tax profit;
- * `estPat` is the same number after an estimated 115BAA provision — together
- * they preserve the P&L-page narrative on a single-screen overview. Kept under
- * the keys the FinancialKPIs panel already consumes so no downstream churn.
+ * Top-line KPI strip for the HUD. `pbt` is the Tally-booked pre-tax profit —
+ * the honest bottom line until the year-end tax provision is posted at audit
+ * close. Kept under the keys the FinancialKPIs panel already consumes so no
+ * downstream churn.
  */
 export const financialKPIs = {
   revenue:       { value: ytdRevenue,             unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: monthlyRevenue, label: 'REVENUE' },
@@ -142,13 +136,6 @@ export const financialKPIs = {
   totalIncome:   { value: ytdTotalIncome,         unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: null,           label: 'TOTAL INCOME' },
   totalExpenses: { value: ytdTotalExp,            unit: 'Cr', currency: '₹', color: '#FF453A', sparkline: monthlyExpenses, label: 'TOTAL EXPENSES' },
   pbt:           { value: ytdPBT,                 unit: 'Cr', currency: '₹', color: '#BF5AF2', sparkline: monthlyPBT,      label: 'PBT (BOOKED)' },
-  estPat:        { value: estPATPostProvisionCr,  unit: 'Cr', currency: '₹', color: '#FFD700', sparkline: null,           label: 'EST. PAT @25.17%' },
-};
-
-/** Exposed so the panel tooltip can show the provision that bridges PBT→PAT. */
-export const estTaxProvision = {
-  rate: STATUTORY_TAX_RATE,
-  amountCr: estTaxProvisionCr,
 };
 
 // ── Quarterly aggregates (derived) ──────────────────────────────────────────
@@ -272,10 +259,8 @@ export const waterfallData = [
 ];
 
 // ── Profitability Ratios (ROA uses derived total assets) ───────────────────
-// ROA is computed on PBT (pre-tax) to match the rest of the HUD, since
-// Tally has not booked the current-year tax provision yet. The P&L page's
-// separate "post-provision PAT" view is the place where the ROA impact of
-// the estimated provision is discussed — not here.
+// ROA is computed on PBT because Tally has not booked the current-year tax
+// provision yet — PBT is the honest bottom line until audit close.
 
 const monthlyOPE = monthlyExpenses.map((e, i) =>
   monthlyRevenue[i] === 0 ? 0 : +((e / monthlyRevenue[i]) * 100).toFixed(1),

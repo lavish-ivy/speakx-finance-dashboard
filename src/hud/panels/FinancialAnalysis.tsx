@@ -295,7 +295,7 @@ export default function FinancialAnalysis() {
       <PanelFootnote
         notes={[
           'Segments sum exactly to Total Income (Revenue + Other Income)',
-          'PBT is pre-tax — post-provision PAT lives in the hero bridge',
+          'PBT is Tally-booked, pre-tax — income tax posted at year-end audit close',
           'Direct Costs = COGS · Operating Expenses = Indirect Expenses (Tally groups)',
         ]}
       />

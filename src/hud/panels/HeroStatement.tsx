@@ -1,5 +1,5 @@
 import { FONTS } from '../../theme/typography';
-import { financialKPIs, estTaxProvision, cashFlowData } from '../../data/mockData';
+import { financialKPIs, cashFlowData } from '../../data/mockData';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useMaskedValue } from '../../context/DashboardContext';
 
@@ -11,12 +11,11 @@ import { useMaskedValue } from '../../context/DashboardContext';
  *
  *   1. Serif italic standfirst  — one sentence, the 30-second take-home
  *   2. Four display figures     — Revenue · PBT · FCF · Liquidity
- *   3. Reconciliation footnote  — PBT→PAT bridge + methodology caveats
+ *   3. Reconciliation footnote  — methodology caveats
  *
- * Why 4 figures and not 5: Estimated PAT lives inside the standfirst and the
- * reconciliation strip, so it doesn't need its own display slot. Keeping the
- * tile row to 4 lets each number breathe at 34-40px Fraunces instead of the
- * cramped 26px the old 6-row strip was stuck with.
+ * Why 4 figures and not 5: the tile row stays at 4 so each number breathes
+ * at 34-40px Fraunces instead of the cramped 26px the old 6-row strip was
+ * stuck with.
  *
  * Why "expense coverage" and not "runway": SpeakX is profitable (PBT > 0).
  * Runway only reads right when burn is positive — for a profitable company
@@ -42,12 +41,9 @@ export default function HeroStatement() {
 
   const revenue = financialKPIs.revenue.value;
   const pbt = financialKPIs.pbt.value;
-  const estPat = financialKPIs.estPat.value;
   const totalExp = financialKPIs.totalExpenses.value;
   const fcf = cashFlowData.ytd.fcf.value;
   const liquidity = cashFlowData.ytd.liquidity.value;
-  const taxProvision = estTaxProvision.amountCr;
-  const taxRatePct = (estTaxProvision.rate * 100).toFixed(2);
   const coverage = coverageMonths(liquidity, totalExp);
 
   const figures: Figure[] = [
@@ -92,8 +88,7 @@ export default function HeroStatement() {
         <strong style={{ fontStyle: 'normal', fontWeight: 600 }}>
           {mask(`₹${pbt.toFixed(2)} Cr`)}
         </strong>{' '}
-        in pre-tax profit — {mask(`₹${estPat.toFixed(2)} Cr`)} after an estimated{' '}
-        {taxRatePct}% provision under §115BAA. The business threw off{' '}
+        in pre-tax profit. The business threw off{' '}
         {mask(`₹${fcf.toFixed(2)} Cr`)} of free cash across the 11-month cash
         window and closed March with{' '}
         <strong style={{ fontStyle: 'normal', fontWeight: 600, color: 'var(--accent-coral)' }}>
@@ -159,7 +154,7 @@ export default function HeroStatement() {
         ))}
       </div>
 
-      {/* Reconciliation bridge — the footnote a CFO keeps pointing to */}
+      {/* Methodology footnote */}
       <div
         style={{
           paddingTop: 10,
@@ -176,11 +171,7 @@ export default function HeroStatement() {
           gap: '4px 12px',
         }}
       >
-        <span>
-          PBT → PAT bridge: {mask(`₹${pbt.toFixed(2)}`)} − {mask(`₹${taxProvision.toFixed(2)}`)} (tax @{taxRatePct}%) = {mask(`₹${estPat.toFixed(2)}`)}
-        </span>
-        <span aria-hidden>·</span>
-        <span>Tax provision not yet booked in Tally; year-end adjustment</span>
+        <span>PBT is Tally-booked, pre-tax · Income tax ₹0 until year-end audit close</span>
         <span aria-hidden>·</span>
         <span>Mar-26 Other Income elevated — year-end treasury accrual</span>
       </div>

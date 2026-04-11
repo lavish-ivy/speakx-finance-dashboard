@@ -135,24 +135,17 @@ export const monthlyPBT = monthlyEBIT.map(
 
 /**
  * Income Tax booked in Tally month-by-month. Zero throughout FY26 because
- * current tax provision is recognized at year-end close, not on a monthly
- * accrual basis. This is the CASH-/BOOKING-view number (for the Cash P&L).
- *
- * For the investor P&L view, see `STATUTORY_TAX_RATE` below — the dashboard
- * computes an estimated provision at the statutory rate on YTD PBT and
- * surfaces both "Booked PAT" and "Estimated PAT (post-provision)".
+ * current tax provision is recognized at year-end audit close, not on a
+ * monthly accrual basis. PBT is therefore the Tally-booked bottom line
+ * across the dashboard until the year-end provision is posted.
  */
 export const monthlyTax = [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00];
 
 /**
- * Indian statutory corporate tax rate for a domestic company opting into
- * Section 115BAA (concessional regime): 22% base + 10% surcharge + 4% cess
- * = 25.168% ≈ 25.17%. Used to compute the P&L provision estimate; actual
- * provision is booked by the tax advisor at year-end close.
+ * PAT = PBT − Tax (auto-computed). Equal to PBT while monthlyTax is zero —
+ * kept as a separate export so the P&L waterfall can show the Tax row and
+ * the identity survives when the year-end provision is finally posted.
  */
-export const STATUTORY_TAX_RATE = 0.2517;
-
-/** PAT = PBT − Tax (auto-computed — equals PBT until YE provision is booked) */
 export const monthlyPAT = monthlyPBT.map((p, i) => +(p - monthlyTax[i]).toFixed(2));
 
 // ── Balance Sheet Monthly Data (Rs. Lakhs, month-end closing, Tally cache 2026-04-09) ──
@@ -412,7 +405,7 @@ export const pnlStructure: PnlRow[] = [
     ytd: sumArr(monthlyTax),
   },
   {
-    label: 'PAT (pre-provision)',
+    label: 'Profit After Tax',
     monthly: monthlyPAT,
     ytd: sumArr(monthlyPAT),
     bold: true,

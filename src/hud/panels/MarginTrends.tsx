@@ -471,7 +471,7 @@ export default function MarginTrends() {
       <PanelFootnote
         notes={[
           'Revenue & Expenses on accrual basis',
-          'PBT (dashed) shown pre-tax — Tally books no monthly tax provision under §115BAA',
+          'PBT (dashed) is the Tally-booked bottom line — income tax posted at year-end audit close',
           'Mar-26 Other Income elevated by year-end treasury accrual',
         ]}
       />

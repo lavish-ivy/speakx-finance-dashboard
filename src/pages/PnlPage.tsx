@@ -9,12 +9,10 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
   monthlyRevenue,
   monthlyEBITDA,
-  monthlyPAT,
   monthlyOperatingExpenses,
   monthlyGrossProfit,
   monthlyFinanceCosts,
   monthlyPBT,
-  STATUTORY_TAX_RATE,
   pnlStructure,
   aggregate,
   periodLabels,
@@ -34,14 +32,14 @@ import {
  *
  *   EditorialPageShell
  *     └─ Header + eyebrow + serif title + rule--thick
- *     └─ PnlHero       — italic standfirst + 4 display figures + bridge footnote
+ *     └─ PnlHero       — italic standfirst + 4 display figures + methodology footnote
  *     └─ rule--thick
- *     └─ MarginTrendChart (full-width hero chart — GM%, EBITDA%, PAT%)
+ *     └─ MarginTrendChart (full-width hero chart — GM%, EBITDA%, PBT%)
  *     └─ rule
  *     └─ RevenueEBITDAChart (supporting — bars + EBITDA line)
  *     └─ rule
  *     └─ EditorialDataTable — pnlStructure rows
- *     └─ PanelFootnote — tax provision methodology
+ *     └─ PanelFootnote — reconciliation notes
  *
  * All hardcoded hex colors are routed through `mapColor()` so the theme
  * context can map them into the warm-paper palette (dark-mode terracotta,
@@ -103,16 +101,13 @@ function PnlHero() {
 
   const gmPct = totalRev === 0 ? 0 : (totalGP / totalRev) * 100;
   const ebitdaPct = totalRev === 0 ? 0 : (totalEBITDA / totalRev) * 100;
-
-  const estTaxProvision = totalPBT > 0 ? +(totalPBT * STATUTORY_TAX_RATE).toFixed(2) : 0;
-  const estPat = +(totalPBT - estTaxProvision).toFixed(2);
-  const taxRatePct = (STATUTORY_TAX_RATE * 100).toFixed(2);
+  const pbtPct = totalRev === 0 ? 0 : (totalPBT / totalRev) * 100;
 
   const figures: HeroFigure[] = [
-    { label: 'Revenue',       value: `₹${totalRev.toFixed(2)}` },
-    { label: 'Gross margin',  value: `${gmPct.toFixed(1)}%` },
-    { label: 'EBITDA',        value: `₹${totalEBITDA.toFixed(2)}` },
-    { label: 'Estimated PAT', value: `₹${estPat.toFixed(2)}`, accent: true },
+    { label: 'Revenue',      value: `₹${totalRev.toFixed(2)}` },
+    { label: 'Gross margin', value: `${gmPct.toFixed(1)}%` },
+    { label: 'EBITDA',       value: `₹${totalEBITDA.toFixed(2)}` },
+    { label: 'PBT',          value: `₹${totalPBT.toFixed(2)}`, accent: true },
   ];
 
   const figureFontSize = isMobile ? 26 : isTablet ? 30 : 38;
@@ -153,12 +148,12 @@ function PnlHero() {
         <strong style={{ fontStyle: 'normal', fontWeight: 600 }}>
           {mask(`₹${totalEBITDA.toFixed(2)} Cr`)}
         </strong>{' '}
-        of EBITDA ({mask(`${ebitdaPct.toFixed(1)}%`)} margin), and after an
-        estimated {taxRatePct}% §115BAA tax provision the bottom line settles at{' '}
+        of EBITDA ({mask(`${ebitdaPct.toFixed(1)}%`)} margin), and after finance
+        costs and non-operating income the Tally-booked bottom line is{' '}
         <strong style={{ fontStyle: 'normal', fontWeight: 600, color: 'var(--accent-coral)' }}>
-          {mask(`₹${estPat.toFixed(2)} Cr`)}
+          {mask(`₹${totalPBT.toFixed(2)} Cr`)}
         </strong>{' '}
-        of PAT — the profit the business would report on audit close.
+        of pre-tax profit ({mask(`${pbtPct.toFixed(1)}%`)} margin).
       </p>
 
       {/* Four display figures */}
@@ -219,7 +214,7 @@ function PnlHero() {
         ))}
       </div>
 
-      {/* PBT → PAT bridge footnote */}
+      {/* Methodology footnote */}
       <div
         style={{
           paddingTop: 10,
@@ -237,23 +232,17 @@ function PnlHero() {
         }}
       >
         <span>
-          PBT → PAT bridge: {mask(`₹${totalPBT.toFixed(2)}`)} −{' '}
-          {mask(`₹${estTaxProvision.toFixed(2)}`)} (tax @{taxRatePct}%) ={' '}
-          {mask(`₹${estPat.toFixed(2)}`)}
-        </span>
-        <span aria-hidden>·</span>
-        <span>
           Operating expenses {mask(`₹${totalOpex.toFixed(2)} Cr`)} · Finance costs{' '}
           {mask(`₹${totalFinCost.toFixed(2)} Cr`)}
         </span>
         <span aria-hidden>·</span>
-        <span>Tax provision not yet booked in Tally; year-end adjustment</span>
+        <span>Figures reconciled to Tally group-level Trial Balance</span>
       </div>
     </section>
   );
 }
 
-// ── Margin Trend Chart (GM%, EBITDA%, PAT%) — full-width hero chart ─────────
+// ── Margin Trend Chart (GM%, EBITDA%, PBT%) — full-width hero chart ─────────
 
 interface TooltipData {
   x: number;
@@ -288,31 +277,31 @@ function MarginTrendChart() {
   const rev = aggregate(monthlyRevenue, period);
   const gp = aggregate(monthlyGrossProfit, period);
   const ebitda = aggregate(monthlyEBITDA, period);
-  const pat = aggregate(monthlyPAT, period);
+  const pbt = aggregate(monthlyPBT, period);
   const labels = periodLabels(period);
 
   // Divide-by-zero safe (early-FY months may have zero revenue).
   const gmPct = rev.map((r, i) => (r === 0 ? 0 : +((gp[i] / r) * 100).toFixed(1)));
   const ebitdaPct = rev.map((r, i) => (r === 0 ? 0 : +((ebitda[i] / r) * 100).toFixed(1)));
-  const patPct = rev.map((r, i) => (r === 0 ? 0 : +((pat[i] / r) * 100).toFixed(1)));
+  const pbtPct = rev.map((r, i) => (r === 0 ? 0 : +((pbt[i] / r) * 100).toFixed(1)));
 
   // YTD margins from Lakhs source with a single final /100 conversion — matches
   // the hero statement and avoids "sum of 2dp rounded points" drift.
   const ytdRev = monthlyRevenue.reduce((a, b) => a + b, 0);
   const ytdGP = monthlyGrossProfit.reduce((a, b) => a + b, 0);
   const ytdEB = monthlyEBITDA.reduce((a, b) => a + b, 0);
-  const ytdPAT = monthlyPAT.reduce((a, b) => a + b, 0);
+  const ytdPBT = monthlyPBT.reduce((a, b) => a + b, 0);
   const ytdGMPct = ytdRev === 0 ? 0 : (ytdGP / ytdRev) * 100;
   const ytdEBPct = ytdRev === 0 ? 0 : (ytdEB / ytdRev) * 100;
-  const ytdPATPct = ytdRev === 0 ? 0 : (ytdPAT / ytdRev) * 100;
+  const ytdPBTPct = ytdRev === 0 ? 0 : (ytdPBT / ytdRev) * 100;
 
   const series = [
-    { name: 'Gross margin', shortName: 'GM%',     slot: '#00FFCC', data: gmPct,     ytd: ytdGMPct },
+    { name: 'Gross margin',  shortName: 'GM%',     slot: '#00FFCC', data: gmPct,     ytd: ytdGMPct },
     { name: 'EBITDA margin', shortName: 'EBITDA%', slot: '#FF9F0A', data: ebitdaPct, ytd: ytdEBPct },
-    { name: 'PAT margin',    shortName: 'PAT%',    slot: '#BF5AF2', data: patPct,    ytd: ytdPATPct },
+    { name: 'PBT margin',    shortName: 'PBT%',    slot: '#BF5AF2', data: pbtPct,    ytd: ytdPBTPct },
   ];
 
-  const allVals = [...gmPct, ...ebitdaPct, ...patPct];
+  const allVals = [...gmPct, ...ebitdaPct, ...pbtPct];
   const rawMin = Math.min(0, ...allVals);
   const rawMax = Math.max(...allVals);
   const span = Math.max(rawMax - rawMin, 10);
@@ -617,7 +606,7 @@ function MarginTrendChart() {
         notes={[
           'GM% = (Revenue − COGS) ÷ Revenue',
           'EBITDA margin reported pre-interest per Ind-AS 1',
-          'PAT% dashed — Tally books no monthly tax provision under §115BAA',
+          'PBT% after finance costs and non-operating income',
         ]}
       />
     </div>
@@ -884,11 +873,6 @@ export default function PnlPage() {
   const { period } = useDashboard();
   const { isMobile } = useBreakpoint();
 
-  const totalPBT = sumArr(monthlyPBT) / LAKHS_PER_CRORE;
-  const estTaxProvision = totalPBT > 0 ? +(totalPBT * STATUTORY_TAX_RATE).toFixed(2) : 0;
-  const estPat = +(totalPBT - estTaxProvision).toFixed(2);
-  const taxRatePct = (STATUTORY_TAX_RATE * 100).toFixed(2);
-
   const labels = periodLabels(period);
   const tableHeaders = ['Account', ...labels, 'YTD'];
   const tableRows: EditorialDataRow[] = pnlStructure.map((row) => ({
@@ -964,9 +948,10 @@ export default function PnlPage() {
 
         <PanelFootnote
           notes={[
-            `Income Tax booked at year-end close — currently ₹0 in Tally`,
-            `Statutory §115BAA rate ${taxRatePct}% · Est. provision ₹${estTaxProvision.toFixed(2)} Cr on PBT ₹${totalPBT.toFixed(2)} Cr`,
-            `Est. post-tax PAT ₹${estPat.toFixed(2)} Cr — this is the number the audited P&L will report`,
+            'Waterfall follows Ind-AS 1 / Schedule III ordering',
+            'Finance Costs classified below EBIT — not inside Operating Expenses',
+            'Income Tax ₹0 in Tally — year-end provision booked at audit close',
+            'PBT is the Tally-booked bottom line; PAT row shown net of booked tax only',
           ]}
         />
       </div>

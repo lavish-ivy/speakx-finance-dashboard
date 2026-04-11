@@ -813,7 +813,7 @@ export default function CashPage() {
   //
   // Under SpeakX's group-level TB constraints:
   //   • D&A = 0 (not captured monthly at group level)
-  //   • Tax = 0 (year-end §115BAA provision not yet booked)
+  //   • Tax = 0 (income tax posted at year-end audit close, not monthly)
   //   • AR ≈ 0 (B2C, card/UPI-settled)
   //   • No inventory (service business)
   //
@@ -1010,7 +1010,7 @@ export default function CashPage() {
             `Cash received from customers ≈ Revenue — SpeakX is B2C cash-settled (card/UPI), AR ≈ 0`,
             `Other operating receipts = Other Income on accrual basis — may include unrealised MF marking; year-end provision reversal visible in March`,
             `Interest paid disclosed on its own line per Ind-AS 7 para 31; classified under Operating per para 33(a)`,
-            `Income tax paid ₹0 — year-end §115BAA provision not yet booked; see P&L page for the statutory estimate`,
+            `Income tax paid ₹0 — income tax is posted at year-end audit close, not monthly`,
             `Δ Current Liabilities bridges the cash-basis P&L to indirect OCF — drift row reconciles to ≈ 0 by construction (D&A = 0 at group level)`,
             `Fixed Assets ${latestFAFormatted} excluded from liquidity; treasury deployment sits in Investing CF`,
           ]}
