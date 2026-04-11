@@ -17,9 +17,12 @@ import {
   monthlyRevenue,
   monthlyCOGS,
   monthlyTotalOpex,
+  monthlyOperatingExpenses,
+  monthlyFinanceCosts,
   monthlyOtherIncome,
   monthlyTax,
   monthlyCA,
+  monthlyCL,
   monthlyInvestments,
   monthlyFixedAssets,
   aggregateCF,
@@ -800,54 +803,107 @@ export default function CashPage() {
     { label: 'Net Change in Cash', values: aggregateCF(monthlyNetCF, period), ytd: totalNetCF, bold: true, highlight: true },
   ];
 
-  // ── Cash P&L (Direct Method) ─────────────────────────────────────────────
-  const pnlLabels = periodLabels(period);
-  const directHeaders = ['Cash flow', ...pnlLabels, 'YTD'];
+  // ── Direct Method — reconciled to indirect ──────────────────────────────
+  //
+  // The indirect method covers May–Mar (11 months) because OCF is derived
+  // from BS deltas (ΔCL requires two consecutive snapshots, so April has no
+  // entry). Align the direct method to the SAME 11-month window by slicing
+  // April off the P&L arrays. This lets both methods reconcile exactly
+  // instead of papering over the window mismatch with zero-padding.
+  //
+  // Under SpeakX's group-level TB constraints:
+  //   • D&A = 0 (not captured monthly at group level)
+  //   • Tax = 0 (year-end §115BAA provision not yet booked)
+  //   • AR ≈ 0 (B2C, card/UPI-settled)
+  //   • No inventory (service business)
+  //
+  // the direct-method identity holds by construction:
+  //
+  //   Direct OCF = (Rev + OI − COGS − OpEx_ex_fin − Finance − Tax) + ΔCL
+  //              = PBT + ΔCL
+  //              = Indirect OCF      // reconciles to zero drift every period
+  //
+  // Sign convention: receipts positive, payments negative — consistent with
+  // the indirect table where CapEx and Treasury already render negative.
+  // Interest paid is shown on its own line per Ind-AS 7 para 31; income tax
+  // paid is shown at zero with a methodology footnote.
 
-  const revAgg = aggregate(monthlyRevenue, period);
-  const oiAgg = aggregate(monthlyOtherIncome, period);
-  const cogsAgg = aggregate(monthlyCOGS, period);
-  const opexAgg = aggregate(monthlyTotalOpex, period);
-  const taxAgg = aggregate(monthlyTax, period);
+  // Slice May..Mar (11 months) off the 12-month P&L arrays.
+  const sliceCF = <T,>(arr: readonly T[]): T[] => arr.slice(1);
 
-  const revYtd = sumArr(monthlyRevenue);
-  const oiYtd = sumArr(monthlyOtherIncome);
-  const cogsYtd = sumArr(monthlyCOGS);
-  const opexYtd = sumArr(monthlyTotalOpex);
-  const taxYtd = sumArr(monthlyTax);
+  const revCF        = sliceCF(monthlyRevenue);
+  const oiCF         = sliceCF(monthlyOtherIncome);
+  const cogsCF       = sliceCF(monthlyCOGS).map((v) => -v);         // outflow
+  const opexExFinCF  = sliceCF(monthlyOperatingExpenses).map((v) => -v);
+  const interestCF   = sliceCF(monthlyFinanceCosts).map((v) => -v);
+  const taxPaidCF    = sliceCF(monthlyTax).map((v) => -v);          // all zero
 
-  const inflowsByPeriod = revAgg.map((r, i) => +(r + oiAgg[i]).toFixed(2));
-  const outflowsByPeriod = cogsAgg.map(
-    (c, i) => +(c + opexAgg[i] + taxAgg[i]).toFixed(2),
+  // Δ Current Liabilities over May..Mar — the bridge to indirect.
+  const deltaCLCF = Array.from({ length: 11 }, (_, i) =>
+    +(monthlyCL[i + 1] - monthlyCL[i]).toFixed(2),
   );
-  const netCashByPeriod = inflowsByPeriod.map(
-    (inn, i) => +(inn - outflowsByPeriod[i]).toFixed(2),
+
+  // Period-level aggregates (11 points, Q, or FY — cfPeriodLabels already
+  // handles the May..Mar window).
+  const revAggCF        = aggregateCF(revCF, period);
+  const oiAggCF         = aggregateCF(oiCF, period);
+  const receiptsAggCF   = revAggCF.map((r, i) => +(r + oiAggCF[i]).toFixed(2));
+  const cogsAggCF       = aggregateCF(cogsCF, period);
+  const opexAggCF       = aggregateCF(opexExFinCF, period);
+  const interestAggCF   = aggregateCF(interestCF, period);
+  const taxAggCF        = aggregateCF(taxPaidCF, period);
+  const paymentsAggCF   = cogsAggCF.map(
+    (c, i) => +(c + opexAggCF[i] + interestAggCF[i] + taxAggCF[i]).toFixed(2),
+  );
+  const preWCAggCF      = receiptsAggCF.map(
+    (r, i) => +(r + paymentsAggCF[i]).toFixed(2),
+  );
+  const deltaCLAggCF    = aggregateCF(deltaCLCF, period);
+  const reconOCFAggCF   = preWCAggCF.map(
+    (p, i) => +(p + deltaCLAggCF[i]).toFixed(2),
+  );
+  const indirectAggCF   = aggregateCF(monthlyOCF, period);
+  const driftAggCF      = reconOCFAggCF.map(
+    (v, i) => +(v - indirectAggCF[i]).toFixed(2),
   );
 
-  const inflowsYtd = +(revYtd + oiYtd).toFixed(2);
-  const outflowsYtd = +(cogsYtd + opexYtd + taxYtd).toFixed(2);
-  const netCashYtd = +(inflowsYtd - outflowsYtd).toFixed(2);
+  // YTD totals
+  const revYtdCF      = +sumArr(revCF).toFixed(2);
+  const oiYtdCF       = +sumArr(oiCF).toFixed(2);
+  const receiptsYtdCF = +(revYtdCF + oiYtdCF).toFixed(2);
+  const cogsYtdCF     = +sumArr(cogsCF).toFixed(2);
+  const opexYtdCF     = +sumArr(opexExFinCF).toFixed(2);
+  const interestYtdCF = +sumArr(interestCF).toFixed(2);
+  const taxYtdCF      = +sumArr(taxPaidCF).toFixed(2);
+  const paymentsYtdCF = +(cogsYtdCF + opexYtdCF + interestYtdCF + taxYtdCF).toFixed(2);
+  const preWCYtdCF    = +(receiptsYtdCF + paymentsYtdCF).toFixed(2);
+  const deltaCLYtdCF  = +sumArr(deltaCLCF).toFixed(2);
+  const reconOCFYtdCF = +(preWCYtdCF + deltaCLYtdCF).toFixed(2);
+  const driftYtdCF    = +(reconOCFYtdCF - totalOCF).toFixed(2);
 
-  // ── Reconciliation: direct vs indirect OCF ───────────────────────────────
-  // Indirect OCF covers May-Mar (11 months). Direct covers Apr-Mar (12). Pad
-  // indirect with a zero for April so both series can go through `aggregate()`.
-  const monthlyOCFPadded = [0, ...monthlyOCF];
-  const indirectAgg = aggregate(monthlyOCFPadded, period);
-  const driftValues = netCashByPeriod.map(
-    (v, i) => +(v - indirectAgg[i]).toFixed(2),
-  );
-  const ocfDriftYtd = +(netCashYtd - totalOCF).toFixed(2);
+  const directHeaders = ['Cash flow', ...cfLabels, 'YTD'];
 
   const directRows: EditorialDataRow[] = [
-    { label: 'Revenue Received', values: revAgg, ytd: revYtd },
-    { label: 'Other Income Received', values: oiAgg, ytd: oiYtd },
-    { label: 'Total Cash Inflows', values: inflowsByPeriod, ytd: inflowsYtd, bold: true, highlight: true },
-    { label: 'Cost of Revenue (Direct Expenses)', values: cogsAgg, ytd: cogsYtd },
-    { label: 'Operating Expenses (incl. interest)', values: opexAgg, ytd: opexYtd },
-    { label: 'Income Tax Paid', values: taxAgg, ytd: taxYtd },
-    { label: 'Total Cash Outflows', values: outflowsByPeriod, ytd: outflowsYtd, bold: true, highlight: true },
-    { label: 'Net Operating Cash Flow (direct)', values: netCashByPeriod, ytd: netCashYtd, bold: true, highlight: true },
-    { label: 'Drift vs Indirect-Method OCF', values: driftValues, ytd: ocfDriftYtd, pctRow: true },
+    { label: '— Operating receipts —', values: [], ytd: 0, section: true },
+    { label: 'Cash received from customers', values: revAggCF, ytd: revYtdCF, indent: true },
+    { label: 'Other operating receipts', values: oiAggCF, ytd: oiYtdCF, indent: true },
+    { label: 'Total operating receipts', values: receiptsAggCF, ytd: receiptsYtdCF, bold: true },
+
+    { label: '— Operating payments —', values: [], ytd: 0, section: true },
+    { label: 'Cost of revenue paid', values: cogsAggCF, ytd: cogsYtdCF, indent: true },
+    { label: 'Operating expenses paid (ex-interest)', values: opexAggCF, ytd: opexYtdCF, indent: true },
+    { label: 'Interest paid', values: interestAggCF, ytd: interestYtdCF, indent: true },
+    { label: 'Income tax paid', values: taxAggCF, ytd: taxYtdCF, indent: true },
+    { label: 'Total operating payments', values: paymentsAggCF, ytd: paymentsYtdCF, bold: true },
+
+    { label: '— Bridge to indirect —', values: [], ytd: 0, section: true },
+    { label: 'Cash surplus before working capital', values: preWCAggCF, ytd: preWCYtdCF, bold: true },
+    { label: 'Δ Current Liabilities', values: deltaCLAggCF, ytd: deltaCLYtdCF, indent: true },
+
+    { label: '— Reconciled result —', values: [], ytd: 0, section: true },
+    { label: 'Net cash from operations (direct)', values: reconOCFAggCF, ytd: reconOCFYtdCF, bold: true, highlight: true },
+    { label: 'Indirect-method OCF (reference)', values: indirectAggCF, ytd: totalOCF, indent: true },
+    { label: 'Drift vs indirect', values: driftAggCF, ytd: driftYtdCF, pctRow: true },
   ];
 
   const latestFAFormatted = formatCr(monthlyFixedAssets[11]);
@@ -924,7 +980,7 @@ export default function CashPage() {
               marginBottom: 4,
             }}
           >
-            Direct method · Cash P&L
+            Direct method
           </div>
           <div
             style={{
@@ -936,7 +992,7 @@ export default function CashPage() {
               color: 'var(--text-muted)',
             }}
           >
-            Revenue received − expenses paid · Drift row reconciles to indirect
+            Receipts − payments − interest · Bridged to indirect via ΔCL · May–Mar window
           </div>
         </div>
 
@@ -950,11 +1006,13 @@ export default function CashPage() {
 
         <PanelFootnote
           notes={[
-            `Cash & equivalents = Tally Current Assets (bank + Razorpay/PhonePe + short-term deposits)`,
-            `Fixed Assets ${latestFAFormatted} excluded from liquidity`,
-            `Finance costs classified under Operating per Ind-AS 7 para 33(a)`,
-            `Income Tax ₹0 — year-end provision at close; see P&L page for statutory estimate`,
-            `GST cash flow rolled into Current Liabilities at Tally group level`,
+            `Window May–Mar (11 months) — April excluded because indirect OCF uses ΔCL and needs two consecutive BS snapshots`,
+            `Cash received from customers ≈ Revenue — SpeakX is B2C cash-settled (card/UPI), AR ≈ 0`,
+            `Other operating receipts = Other Income on accrual basis — may include unrealised MF marking; year-end provision reversal visible in March`,
+            `Interest paid disclosed on its own line per Ind-AS 7 para 31; classified under Operating per para 33(a)`,
+            `Income tax paid ₹0 — year-end §115BAA provision not yet booked; see P&L page for the statutory estimate`,
+            `Δ Current Liabilities bridges the cash-basis P&L to indirect OCF — drift row reconciles to ≈ 0 by construction (D&A = 0 at group level)`,
+            `Fixed Assets ${latestFAFormatted} excluded from liquidity; treasury deployment sits in Investing CF`,
           ]}
         />
       </div>
