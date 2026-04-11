@@ -1,24 +1,19 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { operatingExpenses } from '../../data/mockData';
+import { FONTS, SIZES } from '../../theme/typography';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 
-/* ── Glass card ─────────────────────────────────────── */
+/* ── Editorial panel frame ─────────────────────────────── */
 
-const glassStyle: React.CSSProperties = {
-  background: 'var(--bg-card)',
-  border: '1px solid var(--border-card)',
-  borderRadius: 8,
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
-  padding: '14px 18px',
+const panelFrame: React.CSSProperties = {
+  padding: 0,
   height: '100%',
   overflow: 'hidden',
   boxSizing: 'border-box',
   display: 'flex',
   flexDirection: 'column',
-  transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
 };
 
 
@@ -71,14 +66,15 @@ const Bar: React.FC<{
       <span
         className="fade-in"
         style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: isMobile ? 12 : 10,
-          fontWeight: 700,
-          color,
-          marginBottom: 4,
+          fontFamily: FONTS.data.family,
+          fontSize: isMobile ? 13 : 11,
+          fontWeight: 500,
+          color: 'var(--text-primary)',
+          marginBottom: 5,
           flexShrink: 0,
           animationDelay: `${index * 0.1 + 0.4}s`,
-          filter: `drop-shadow(0 0 4px ${color}40)`,
+          fontVariantNumeric: 'tabular-nums lining-nums',
+          letterSpacing: '-0.005em',
         }}
       >
         {value.toFixed(1)}{unit}
@@ -103,7 +99,7 @@ const Bar: React.FC<{
             left: 0,
             width: '100%',
             height: '100%',
-            borderRadius: '4px 4px 0 0',
+            borderRadius: 0,
             background: 'var(--chart-gridline)',
           }}
         />
@@ -111,18 +107,16 @@ const Bar: React.FC<{
           style={{
             width: BAR_WIDTH,
             height: `${heightFraction * 100}%`,
-            borderRadius: '4px 4px 0 0',
-            background: `linear-gradient(to bottom, ${color}, ${color}30)`,
-            filter: hovered
-              ? `drop-shadow(0 0 14px ${color}90)`
-              : `drop-shadow(0 0 6px ${color}4D)`,
+            borderRadius: 0, // square — editorial, not rounded
+            background: color,
+            opacity: hovered ? 1 : 0.88,
             cursor: 'pointer',
             transformOrigin: 'bottom',
             animation: `growUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${index * 0.1}s both`,
             position: 'relative',
             zIndex: 1,
           }}
-          whileHover={{ scaleY: 1.05 }}
+          whileHover={{ scaleY: 1.04 }}
           transition={{ scaleY: { duration: 0.2 } }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -132,11 +126,13 @@ const Bar: React.FC<{
       {/* X-axis label */}
       <span
         style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: isMobile ? 11 : 9,
-          fontWeight: 400,
+          fontFamily: FONTS.caption.family,
+          fontSize: isMobile ? 10 : 9,
+          fontWeight: 500,
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
           color: 'var(--text-muted)',
-          marginTop: 5,
+          marginTop: 6,
           flexShrink: 0,
         }}
       >
@@ -166,22 +162,24 @@ const BreakdownRow: React.FC<{
     }}
   >
     {/* Label + percentage row */}
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
       <div
         style={{
-          width: 3,
-          height: isMobile ? 16 : 12,
-          borderRadius: 1.5,
+          width: 2,
+          height: isMobile ? 14 : 12,
+          borderRadius: 0,
           background: color,
-          boxShadow: `0 0 4px ${color}60`,
           flexShrink: 0,
+          alignSelf: 'center',
         }}
       />
       <span
         style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: isMobile ? 12 : 9,
-          fontWeight: 400,
+          fontFamily: FONTS.caption.family,
+          fontSize: isMobile ? 11 : 10,
+          fontWeight: 500,
+          textTransform: 'uppercase',
+          letterSpacing: '0.10em',
           color: 'var(--text-secondary)',
           flex: 1,
         }}
@@ -190,11 +188,12 @@ const BreakdownRow: React.FC<{
       </span>
       <span
         style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: isMobile ? 13 : 10,
-          fontWeight: 700,
-          color,
-          filter: `drop-shadow(0 0 4px ${color}30)`,
+          fontFamily: FONTS.data.family,
+          fontSize: isMobile ? 13 : 11,
+          fontWeight: 500,
+          color: 'var(--text-primary)',
+          fontVariantNumeric: 'tabular-nums',
+          letterSpacing: '-0.005em',
         }}
       >
         {pct}%
@@ -204,10 +203,10 @@ const BreakdownRow: React.FC<{
     {/* Mini progress bar */}
     <div
       style={{
-        height: isMobile ? 3 : 2,
-        borderRadius: 1,
+        height: 1,
+        borderRadius: 0,
         background: 'var(--chart-gridline)',
-        marginLeft: 9,
+        marginLeft: 10,
         overflow: 'hidden',
       }}
     >
@@ -215,9 +214,8 @@ const BreakdownRow: React.FC<{
         style={{
           width: `${(pct / maxPct) * 100}%`,
           height: '100%',
-          borderRadius: 1,
-          background: `linear-gradient(90deg, ${color}, ${color}60)`,
-          boxShadow: `0 0 4px ${color}40`,
+          background: color,
+          opacity: 0.85,
         }}
       />
     </div>
@@ -227,9 +225,8 @@ const BreakdownRow: React.FC<{
 /* ── Main component ─────────────────────────────────── */
 
 const OperatingExpenses: React.FC = () => {
-  const { mapColor, isDark } = useTheme();
+  const { mapColor } = useTheme();
   const { isMobile } = useBreakpoint();
-  const [isHovered, setIsHovered] = useState(false);
   const maxPct = Math.max(...operatingExpenses.breakdown.map((b) => b.pct));
   const barGap = isMobile ? BAR_GAP_MOBILE : BAR_GAP_DESKTOP;
 
@@ -246,30 +243,34 @@ const OperatingExpenses: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        ...glassStyle,
-        padding: isMobile ? '16px' : '14px 18px',
-        borderColor: isHovered ? 'var(--hover-border)' : 'var(--border-card)',
-        boxShadow: isHovered ? 'var(--hover-glow)' : 'none',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Title */}
-      <div
-        style={{
-          fontFamily: "'Orbitron', monospace",
-          fontSize: isMobile ? 14 : 11,
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.1em',
-          color: 'var(--text-primary)',
-          marginBottom: 10,
-          flexShrink: 0,
-        }}
-      >
-        EXPENSES
+    <div style={panelFrame}>
+      {/* Editorial title */}
+      <div style={{ marginBottom: 14, flexShrink: 0 }}>
+        <div
+          style={{
+            fontFamily: FONTS.serif.family,
+            fontSize: isMobile ? SIZES.sectionTitleSm : SIZES.sectionTitle,
+            fontWeight: 500,
+            letterSpacing: '-0.01em',
+            color: 'var(--text-primary)',
+            lineHeight: 1.1,
+          }}
+        >
+          Operating expenses
+        </div>
+        <div
+          style={{
+            fontFamily: FONTS.caption.family,
+            fontSize: 9,
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '0.14em',
+            color: 'var(--text-muted)',
+            marginTop: 3,
+          }}
+        >
+          By quarter & category · ₹ Crores
+        </div>
       </div>
 
       {/* Two-column layout */}
@@ -300,27 +301,11 @@ const OperatingExpenses: React.FC = () => {
           ))}
         </div>
 
-        {/* Divider */}
+        {/* Hairline divider between chart and breakdown */}
         {isMobile ? (
-          <div
-            style={{
-              height: 1,
-              background: isDark
-                ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)'
-                : 'linear-gradient(90deg, transparent, var(--divider), transparent)',
-              flexShrink: 0,
-            }}
-          />
+          <div style={{ height: 1, background: 'var(--border-subtle)', flexShrink: 0 }} />
         ) : (
-          <div
-            style={{
-              width: 1,
-              background: isDark
-                ? 'linear-gradient(180deg, transparent, rgba(255,255,255,0.1), transparent)'
-                : 'linear-gradient(180deg, transparent, var(--divider), transparent)',
-              flexShrink: 0,
-            }}
-          />
+          <div style={{ width: 1, background: 'var(--border-subtle)', flexShrink: 0 }} />
         )}
 
         {/* Right: Breakdown with progress bars */}

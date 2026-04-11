@@ -5,19 +5,14 @@ import { formatCurrency } from '../../utils/formatCurrency';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 
-const glassCard: React.CSSProperties = {
-  background: 'var(--bg-card)',
-  border: '1px solid var(--border-card)',
-  borderRadius: 8,
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
-  padding: '12px 16px',
+// Editorial panel frame (see MarginTrends.tsx for rationale)
+const panelFrame: React.CSSProperties = {
+  padding: 0,
   height: '100%',
   overflow: 'hidden',
   boxSizing: 'border-box',
   display: 'flex',
   flexDirection: 'column',
-  transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
 };
 
 /* ── Donut geometry helpers ─────────────────────────── */
@@ -116,8 +111,8 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
                 strokeWidth={strokeW}
                 strokeLinecap="butt"
                 style={{
-                  filter: `drop-shadow(0 0 ${isHov ? 10 : 4}px ${mapColor(seg.color)}4D)`,
-                  transition: 'filter 0.2s ease',
+                  opacity: isHov ? 1 : 0.92,
+                  transition: 'opacity 0.2s ease',
                 }}
               />
             </g>
@@ -142,24 +137,26 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
       >
         <div
           style={{
-            fontFamily: FONTS.data.family,
-            fontSize: isMobile ? 16 : 15,
-            fontWeight: 700,
-            color: mapColor(financialAnalysis.total.color),
+            fontFamily: FONTS.serif.family,
+            fontSize: isMobile ? 18 : 18,
+            fontWeight: 500,
+            color: 'var(--text-primary)',
             lineHeight: 1,
-            filter: 'drop-shadow(0 0 6px rgba(0,255,204,0.3))',
+            letterSpacing: '-0.02em',
+            fontVariantNumeric: 'tabular-nums lining-nums',
           }}
         >
-          ₹{financialAnalysis.total.value.toFixed(2)} Cr
+          ₹{financialAnalysis.total.value.toFixed(2)}
         </div>
         <div
           style={{
-            fontFamily: FONTS.label.family,
-            fontSize: isMobile ? 8 : 7,
+            fontFamily: FONTS.caption.family,
+            fontSize: 8,
             color: 'var(--text-muted)',
             textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            marginTop: 1,
+            letterSpacing: '0.14em',
+            marginTop: 4,
+            fontWeight: 500,
           }}
         >
           {financialAnalysis.total.label}
@@ -174,7 +171,6 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
 export default function FinancialAnalysis() {
   const { mapColor } = useTheme();
   const { isMobile } = useBreakpoint();
-  const [isHovered, setIsHovered] = useState(false);
 
   const total = financialAnalysis.total.value;
   const segments = financialAnalysis.donut.map((d) => ({
@@ -183,31 +179,34 @@ export default function FinancialAnalysis() {
   }));
 
   return (
-    <div
-      className="fade-in-up"
-      style={{
-        ...glassCard,
-        ...(isMobile ? { padding: '16px' } : {}),
-        borderColor: isHovered ? 'var(--hover-border)' : 'var(--border-card)',
-        boxShadow: isHovered ? 'var(--hover-glow)' : 'none',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Title */}
-      <div
-        style={{
-          fontFamily: FONTS.header.family,
-          fontSize: isMobile ? 14 : SIZES.panelTitle,
-          fontWeight: FONTS.header.weight,
-          textTransform: FONTS.header.transform,
-          letterSpacing: FONTS.header.letterSpacing,
-          color: 'var(--text-primary)',
-          marginBottom: 8,
-          flexShrink: 0,
-        }}
-      >
-        INCOME COMPOSITION
+    <div className="fade-in-up" style={panelFrame}>
+      {/* Editorial title + caption */}
+      <div style={{ marginBottom: 14, flexShrink: 0 }}>
+        <div
+          style={{
+            fontFamily: FONTS.serif.family,
+            fontSize: isMobile ? SIZES.sectionTitleSm : SIZES.sectionTitle,
+            fontWeight: 500,
+            letterSpacing: '-0.01em',
+            color: 'var(--text-primary)',
+            lineHeight: 1.1,
+          }}
+        >
+          Where every rupee went
+        </div>
+        <div
+          style={{
+            fontFamily: FONTS.caption.family,
+            fontSize: 9,
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '0.14em',
+            color: 'var(--text-muted)',
+            marginTop: 3,
+          }}
+        >
+          Income composition · COGS + OpEx + PBT = Total Income
+        </div>
       </div>
 
       {/* Donut + Legend side by side */}
@@ -240,44 +239,47 @@ export default function FinancialAnalysis() {
             >
               <div
                 style={{
-                  width: 3,
-                  height: 14,
-                  borderRadius: 2,
-                  background: `linear-gradient(180deg, ${mapColor(seg.color)}, ${mapColor(seg.color)}60)`,
-                  boxShadow: `0 0 4px ${mapColor(seg.color)}50`,
+                  width: 2,
+                  height: 22,
+                  background: mapColor(seg.color),
                   flexShrink: 0,
                 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
-                    fontFamily: FONTS.body.family,
-                    fontSize: isMobile ? 11 : 8,
-                    color: 'var(--text-secondary)',
+                    fontFamily: FONTS.caption.family,
+                    fontSize: isMobile ? 10 : 9,
+                    fontWeight: 500,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                    color: 'var(--text-muted)',
                     lineHeight: 1.1,
+                    marginBottom: 3,
                   }}
                 >
                   {seg.segment}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span
                     style={{
                       fontFamily: FONTS.data.family,
-                      fontSize: isMobile ? 14 : 12,
-                      fontWeight: 700,
-                      color: mapColor(seg.color),
-                      filter: `drop-shadow(0 0 4px ${mapColor(seg.color)}40)`,
+                      fontSize: isMobile ? 16 : 14,
+                      fontWeight: 500,
+                      color: 'var(--text-primary)',
                       lineHeight: 1,
+                      fontVariantNumeric: 'tabular-nums lining-nums',
+                      letterSpacing: '-0.01em',
                     }}
                   >
                     {formatCurrency(seg.value, seg.unit)}
                   </span>
                   <span
                     style={{
-                      fontFamily: FONTS.label.family,
-                      fontSize: isMobile ? 10 : 7,
-                      color: mapColor(seg.color),
-                      opacity: 0.6,
+                      fontFamily: FONTS.sans.family,
+                      fontSize: isMobile ? 11 : 10,
+                      color: 'var(--text-muted)',
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {seg.percentage}%

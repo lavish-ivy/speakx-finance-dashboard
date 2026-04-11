@@ -1,21 +1,17 @@
 import React, { useState } from 'react';
 import { cashFlowData } from '../../data/mockData';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { FONTS, SIZES } from '../../theme/typography';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 
-const glassCard: React.CSSProperties = {
-  background: 'var(--bg-card)',
-  border: '1px solid var(--border-card)',
-  borderRadius: 8,
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
-  padding: '16px 20px',
+// Editorial panel frame (see MarginTrends.tsx for rationale)
+const panelFrame: React.CSSProperties = {
+  padding: 0,
   overflow: 'hidden',
   boxSizing: 'border-box',
   display: 'flex',
   flexDirection: 'column',
-  transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
 };
 
 /* ── KPI chip ──────────────────────────────────────── */
@@ -25,12 +21,11 @@ interface KPIChipProps {
   value: number;
   unit: string;
   currency: string;
-  color: string;
   isMobile: boolean;
   index: number;
 }
 
-function KPIChip({ label, value, unit, currency, color, isMobile, index }: KPIChipProps) {
+function KPIChip({ label, value, unit, currency, isMobile, index }: KPIChipProps) {
   return (
     <div
       className="fade-in"
@@ -42,13 +37,13 @@ function KPIChip({ label, value, unit, currency, color, isMobile, index }: KPICh
     >
       <div
         style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: isMobile ? 10 : 8,
+          fontFamily: FONTS.caption.family,
+          fontSize: isMobile ? 10 : 9,
           fontWeight: 500,
           textTransform: 'uppercase',
-          letterSpacing: '0.06em',
+          letterSpacing: '0.14em',
           color: 'var(--text-muted)',
-          marginBottom: 3,
+          marginBottom: 5,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -58,12 +53,13 @@ function KPIChip({ label, value, unit, currency, color, isMobile, index }: KPICh
       </div>
       <div
         style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: isMobile ? 18 : 16,
-          fontWeight: 700,
-          color,
-          filter: `drop-shadow(0 0 6px ${color}50)`,
+          fontFamily: FONTS.data.family,
+          fontSize: isMobile ? 20 : 18,
+          fontWeight: 500,
+          color: 'var(--text-primary)',
           lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums lining-nums',
+          letterSpacing: '-0.01em',
         }}
       >
         {formatCurrency(value, unit, currency)}
@@ -179,9 +175,7 @@ function MonthlyOCFChart({ mapColor, isMobile }: BarChartProps) {
                       height: `${heightPct * 2}%`,
                       borderRadius: '3px 3px 0 0',
                       background: `linear-gradient(to bottom, ${thisBarColor}, ${thisBarColor}40)`,
-                      filter: isHov
-                        ? `drop-shadow(0 0 10px ${thisBarColor}90)`
-                        : `drop-shadow(0 0 4px ${thisBarColor}30)`,
+                      opacity: isHov ? 1 : 0.9,
                       transformOrigin: 'bottom',
                       animation: `cfGrowUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${i * 0.06}s both`,
                       cursor: 'pointer',
@@ -210,9 +204,7 @@ function MonthlyOCFChart({ mapColor, isMobile }: BarChartProps) {
                       height: `${heightPct * 2}%`,
                       borderRadius: '0 0 3px 3px',
                       background: `linear-gradient(to top, ${thisBarColor}, ${thisBarColor}40)`,
-                      filter: isHov
-                        ? `drop-shadow(0 0 10px ${thisBarColor}90)`
-                        : `drop-shadow(0 0 4px ${thisBarColor}30)`,
+                      opacity: isHov ? 1 : 0.9,
                       transformOrigin: 'top',
                       animation: `cfGrowUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${i * 0.06}s both`,
                       cursor: 'pointer',
@@ -305,7 +297,6 @@ function MonthlyOCFChart({ mapColor, isMobile }: BarChartProps) {
 /* ── Main component ─────────────────────────────────── */
 
 export default function CashFlowAnalysis() {
-  const [isHovered, setIsHovered] = useState(false);
   const { mapColor } = useTheme();
   const { isMobile } = useBreakpoint();
 
@@ -326,37 +317,45 @@ export default function CashFlowAnalysis() {
   return (
     <div
       style={{
-        ...glassCard,
-        ...(isMobile ? { padding: '16px' } : {}),
-        borderColor: isHovered ? 'var(--hover-border)' : 'var(--border-card)',
-        boxShadow: isHovered ? 'var(--hover-glow)' : 'none',
+        ...panelFrame,
         height: '100%',
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Title */}
-      <div
-        style={{
-          fontFamily: "'Orbitron', monospace",
-          fontSize: isMobile ? 14 : 10,
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'var(--text-primary)',
-          marginBottom: 10,
-          flexShrink: 0,
-        }}
-      >
-        CASH FLOW
+      {/* Editorial title */}
+      <div style={{ marginBottom: 14, flexShrink: 0 }}>
+        <div
+          style={{
+            fontFamily: FONTS.serif.family,
+            fontSize: isMobile ? SIZES.sectionTitleSm : SIZES.sectionTitle,
+            fontWeight: 500,
+            letterSpacing: '-0.01em',
+            color: 'var(--text-primary)',
+            lineHeight: 1.1,
+          }}
+        >
+          Cash flow
+        </div>
+        <div
+          style={{
+            fontFamily: FONTS.caption.family,
+            fontSize: 9,
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '0.14em',
+            color: 'var(--text-muted)',
+            marginTop: 3,
+          }}
+        >
+          Year to date · ₹ Crores
+        </div>
       </div>
 
       {/* 3 KPI chips */}
       <div
         style={{
           display: 'flex',
-          gap: isMobile ? 12 : 16,
-          marginBottom: 12,
+          gap: isMobile ? 14 : 20,
+          marginBottom: 14,
           flexShrink: 0,
         }}
       >
@@ -367,37 +366,29 @@ export default function CashFlowAnalysis() {
             value={kpi.value}
             unit={kpi.unit}
             currency={kpi.currency}
-            color={mapColor(kpi.color)}
             isMobile={isMobile}
             index={i}
           />
         ))}
       </div>
 
-      {/* Divider */}
-      <div
-        style={{
-          height: 1,
-          background: 'linear-gradient(90deg, transparent, var(--divider), transparent)',
-          marginBottom: 8,
-          flexShrink: 0,
-        }}
-      />
+      {/* Hairline separator */}
+      <hr className="rule" style={{ marginBottom: 10, flexShrink: 0 }} />
 
       {/* Sub-header */}
       <div
         style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: isMobile ? 10 : 8,
+          fontFamily: FONTS.caption.family,
+          fontSize: isMobile ? 10 : 9,
           fontWeight: 500,
           textTransform: 'uppercase',
-          letterSpacing: '0.06em',
+          letterSpacing: '0.14em',
           color: 'var(--text-muted)',
-          marginBottom: 6,
+          marginBottom: 8,
           flexShrink: 0,
         }}
       >
-        Monthly Operating Cash Flow
+        Monthly operating cash flow
       </div>
 
       {/* Bar chart */}

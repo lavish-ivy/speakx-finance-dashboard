@@ -60,19 +60,16 @@ const chartSeries: ChartSeries[] = [
   { name: 'PBT',      color: '#FFD700', data: monthlyPBTCr,      ytdCr: ytdPBTCr },
 ];
 
-const glassCard: React.CSSProperties = {
-  background: 'var(--bg-card)',
-  border: '1px solid var(--border-card)',
-  borderRadius: 8,
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
-  padding: '16px 20px',
+// Editorial panel frame — no glass card, no backdrop blur, no border radius.
+// The panel sits on the page; its only chrome is the surrounding hairline
+// grid rules owned by HUD.tsx.
+const panelFrame: React.CSSProperties = {
+  padding: 0,
   height: '100%',
   overflow: 'hidden',
   boxSizing: 'border-box',
   display: 'flex',
   flexDirection: 'column',
-  transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
 };
 
 interface TooltipData {
@@ -136,7 +133,6 @@ export default function MarginTrends() {
   const { mapColor } = useTheme();
   const { isMobile } = useBreakpoint();
   const mask = useMaskedValue();
-  const [isHovered, setIsHovered] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [animProgress, setAnimProgress] = useState(0);
 
@@ -174,70 +170,92 @@ export default function MarginTrends() {
     <div
       className="fade-in-up"
       style={{
-        ...glassCard,
-        ...(isMobile ? { padding: '16px' } : {}),
-        borderColor: isHovered ? 'var(--hover-border)' : 'var(--border-card)',
-        boxShadow: isHovered ? 'var(--hover-glow)' : 'none',
+        ...panelFrame,
         animationDelay: '0.1s',
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Header row */}
+      {/* Editorial header */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 8,
+          alignItems: 'flex-end',
+          marginBottom: 14,
           flexShrink: 0,
-          gap: 8,
+          gap: 12,
           flexWrap: isMobile ? 'wrap' : undefined,
         }}
       >
-        <div
-          style={{
-            fontFamily: FONTS.header.family,
-            fontSize: isMobile ? 14 : SIZES.panelTitle,
-            fontWeight: FONTS.header.weight,
-            textTransform: FONTS.header.transform,
-            letterSpacing: FONTS.header.letterSpacing,
-            color: 'var(--text-primary)',
-          }}
-        >
-          REVENUE vs EXPENSES
+        <div>
+          <div
+            style={{
+              fontFamily: FONTS.serif.family,
+              fontSize: isMobile ? SIZES.sectionTitleSm : SIZES.sectionTitle,
+              fontWeight: 500,
+              letterSpacing: '-0.01em',
+              color: 'var(--text-primary)',
+              lineHeight: 1.1,
+            }}
+          >
+            Revenue vs Expenses
+          </div>
+          <div
+            style={{
+              fontFamily: FONTS.caption.family,
+              fontSize: 9,
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color: 'var(--text-muted)',
+              marginTop: 3,
+            }}
+          >
+            Monthly · ₹ Crores · YTD totals on right
+          </div>
         </div>
 
         {/* YTD reconciliation strip — each number matches the KPI strip */}
         <div
           style={{
             display: 'flex',
-            gap: 10,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: isMobile ? 10 : 8,
-            letterSpacing: '0.05em',
+            gap: 16,
+            fontFamily: FONTS.sans.family,
+            fontSize: isMobile ? 11 : 11,
             whiteSpace: 'nowrap',
+            alignItems: 'baseline',
+            fontVariantNumeric: 'tabular-nums lining-nums',
           }}
         >
           {series.map((s) => (
-            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div key={s.name} style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
               <div
                 style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
+                  width: 6,
+                  height: 1,
                   background: mapColor(s.color),
-                  boxShadow: `0 0 3px ${mapColor(s.color)}`,
+                  alignSelf: 'center',
                 }}
               />
-              <span style={{ color: 'var(--text-secondary)' }}>{s.name}</span>
               <span
                 style={{
-                  color: s.ytdCr >= 0 ? mapColor(s.color) : '#FF453A',
-                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  fontFamily: FONTS.caption.family,
+                  fontSize: 9,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
                 }}
               >
-                {mask(`₹${s.ytdCr.toFixed(2)} Cr`)}
+                {s.name}
+              </span>
+              <span
+                style={{
+                  color: 'var(--text-primary)',
+                  fontWeight: 500,
+                  fontFamily: FONTS.data.family,
+                  letterSpacing: '-0.005em',
+                }}
+              >
+                {mask(`${s.ytdCr >= 0 ? '' : '−'}₹${Math.abs(s.ytdCr).toFixed(2)} Cr`)}
               </span>
             </div>
           ))}
@@ -362,12 +380,11 @@ export default function MarginTrends() {
                   <circle
                     cx={pt.x}
                     cy={pt.y}
-                    r={isActive ? 4 : 2}
+                    r={isActive ? 3.5 : 1.8}
                     fill={color}
                     stroke="var(--bg-deep)"
-                    strokeWidth={2}
+                    strokeWidth={1.5}
                     style={{
-                      filter: `drop-shadow(0 0 3px ${color}80)`,
                       cursor: 'pointer',
                       transition: 'r 0.15s ease',
                     }}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { darkTokens, lightTokens, colorMap } from './tokens';
+import { darkTokens, lightTokens, darkMap, lightMap } from './tokens';
 import type { ThemeTokens } from './tokens';
 
 type ThemeMode = 'dark' | 'light';
@@ -66,10 +66,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
 
+  /**
+   * Routes a legacy logical color key to its editorial hue for the active
+   * mode. Panels author with slot literals (e.g. '#00FFCC' = "primary
+   * positive"), and we remap to the forest/sage/burgundy/etc. palette here.
+   * See `tokens.ts` for the slot meanings.
+   */
   const mapColor = useCallback(
-    (darkColor: string) => {
-      if (isDark) return darkColor;
-      return colorMap[darkColor] || darkColor;
+    (logicalColor: string): string => {
+      const table = isDark ? darkMap : lightMap;
+      return table[logicalColor] ?? logicalColor;
     },
     [isDark]
   );
