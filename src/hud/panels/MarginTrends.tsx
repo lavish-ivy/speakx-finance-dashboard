@@ -10,6 +10,7 @@ import {
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useMaskedValue } from '../../context/DashboardContext';
+import PanelFootnote from '../shared/PanelFootnote';
 
 const LAKHS_PER_CRORE = 100;
 
@@ -466,6 +467,14 @@ export default function MarginTrends() {
           )}
         </svg>
       </div>
+
+      <PanelFootnote
+        notes={[
+          'Revenue & Expenses on accrual basis',
+          'PBT (dashed) shown pre-tax — Tally books no monthly tax provision under §115BAA',
+          'Mar-26 Other Income elevated by year-end treasury accrual',
+        ]}
+      />
     </div>
   );
 }

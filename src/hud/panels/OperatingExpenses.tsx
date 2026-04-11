@@ -4,6 +4,7 @@ import { operatingExpenses } from '../../data/mockData';
 import { FONTS, SIZES } from '../../theme/typography';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
+import PanelFootnote from '../shared/PanelFootnote';
 
 /* ── Editorial panel frame ─────────────────────────────── */
 
@@ -331,6 +332,13 @@ const OperatingExpenses: React.FC = () => {
           ))}
         </div>
       </div>
+
+      <PanelFootnote
+        notes={[
+          'Quarterly totals = COGS + Indirect Expenses (Tally groups)',
+          'Ledger splits are reference-level — shortfall to group total reflects year-end provisions (ESOP, audit, impairment)',
+        ]}
+      />
     </div>
   );
 };

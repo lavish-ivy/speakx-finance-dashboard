@@ -4,6 +4,7 @@ import { formatCurrency } from '../../utils/formatCurrency';
 import { FONTS, SIZES } from '../../theme/typography';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
+import PanelFootnote from '../shared/PanelFootnote';
 
 // Editorial panel frame (see MarginTrends.tsx for rationale)
 const panelFrame: React.CSSProperties = {
@@ -393,6 +394,14 @@ export default function CashFlowAnalysis() {
 
       {/* Bar chart */}
       <MonthlyOCFChart mapColor={mapColor} isMobile={isMobile} />
+
+      <PanelFootnote
+        notes={[
+          'FCF = Operating Cash Flow − CapEx',
+          'Liquidity = Current Assets + Investments (excludes fixed assets)',
+          '11-month cash window (May–Mar); April opening balance not in series',
+        ]}
+      />
     </div>
   );
 }

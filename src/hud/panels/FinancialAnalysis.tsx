@@ -4,6 +4,7 @@ import { financialAnalysis } from '../../data/mockData';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
+import PanelFootnote from '../shared/PanelFootnote';
 
 // Editorial panel frame (see MarginTrends.tsx for rationale)
 const panelFrame: React.CSSProperties = {
@@ -290,6 +291,14 @@ export default function FinancialAnalysis() {
           ))}
         </div>
       </div>
+
+      <PanelFootnote
+        notes={[
+          'Segments sum exactly to Total Income (Revenue + Other Income)',
+          'PBT is pre-tax — post-provision PAT lives in the hero bridge',
+          'Direct Costs = COGS · Operating Expenses = Indirect Expenses (Tally groups)',
+        ]}
+      />
     </div>
   );
 }
