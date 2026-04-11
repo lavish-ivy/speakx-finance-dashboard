@@ -1,27 +1,237 @@
-import PageShell from './PageShell';
-import SectionHeader from '../sections/SectionHeader';
-import GlassCard from '../shared/GlassCard';
-import KPIBar from '../shared/KPIBar';
-import DataTable, { type DataRow } from '../shared/DataTable';
+import EditorialPageShell from '../hud/shared/EditorialPageShell';
+import EditorialDataTable, { type EditorialDataRow } from '../hud/shared/EditorialDataTable';
+import PanelFootnote from '../hud/shared/PanelFootnote';
+import { FONTS, SIZES } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 import { useDashboard, useMaskedValue } from '../context/DashboardContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
-  monthlyNCA, monthlyCA, monthlyEquity, monthlyNCL, monthlyCL,
-  monthlyTotalAssets, monthlyFixedAssets, monthlyInvestments,
-  monthlyCapital, monthlyPnLAccount, monthlyPBT,
-  aggregate, periodLabels, formatCr,
+  monthlyNCA,
+  monthlyCA,
+  monthlyEquity,
+  monthlyNCL,
+  monthlyCL,
+  monthlyTotalAssets,
+  monthlyFixedAssets,
+  monthlyInvestments,
+  monthlyCapital,
+  monthlyPnLAccount,
+  monthlyPBT,
+  aggregate,
+  periodLabels,
+  formatCr,
 } from '../data/financialData';
 import { niceAxis } from '../utils/chartMath';
 
-// ── Stacked Asset Chart (Fixed Assets / Treasury / Cash) ───────────────────
-//
-// Previously stacked NCA on top of CA, which hid the real story: 98% of assets
-// are marketable investments (treasury), ~2% is cash, ~2% is PP&E. A three-band
-// stack with niceAxis makes the composition legible in a single glance.
+/**
+ * BalanceSheetPage — editorial rewrite.
+ *
+ * Replaces the gamer-HUD chrome (Orbitron chart titles, JetBrains Mono axis
+ * labels, `#00FFCC`/`#BF5AF2`/`#39FF14`/`#64D2FF`/`#FF9F0A` hex literals,
+ * GlassCard backdrop blur, and the cyan rgba "classification notes" warning
+ * box) with the editorial IA used by `HUD.tsx` and `HeroStatement.tsx`.
+ *
+ *   EditorialPageShell
+ *     └─ Header + eyebrow + serif title + rule--thick
+ *     └─ BalanceSheetHero — standfirst + 4 display figures (Assets / Net Worth / Treasury / Current Ratio)
+ *     └─ rule--thick
+ *     └─ AssetChart (full-width hero — stacked PP&E / Treasury / Cash)
+ *     └─ rule
+ *     └─ LiabilitiesChart (supporting — stacked Equity / NCL / CL)
+ *     └─ rule
+ *     └─ EditorialDataTable (sectioned BS rows, equity rolled)
+ *     └─ PanelFootnote (Ind-AS 1 / Schedule III methodology)
+ */
+
+const LAKHS_PER_CRORE = 100;
+
+// ── Editorial panel frame ───────────────────────────────────────────────────
+
+const panelFrame: React.CSSProperties = {
+  padding: 0,
+  overflow: 'hidden',
+  boxSizing: 'border-box',
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+// ── Hero standfirst ─────────────────────────────────────────────────────────
+
+interface HeroFigure {
+  label: string;
+  value: string;
+  accent?: boolean;
+}
+
+function BalanceSheetHero() {
+  const { isMobile, isTablet } = useBreakpoint();
+  const mask = useMaskedValue();
+
+  const latestTA = monthlyTotalAssets[11] / LAKHS_PER_CRORE;
+  const latestInv = monthlyInvestments[11] / LAKHS_PER_CRORE;
+  const latestCA = monthlyCA[11] / LAKHS_PER_CRORE;
+  const latestCL = monthlyCL[11] / LAKHS_PER_CRORE;
+  const latestNCL = monthlyNCL[11] / LAKHS_PER_CRORE;
+  const latestEq = monthlyEquity[11] / LAKHS_PER_CRORE;
+  const latestPBT = monthlyPBT[11] / LAKHS_PER_CRORE;
+
+  const latestNetWorth = +(latestEq + latestPBT).toFixed(2);
+  const workingCapital = +(latestCA - latestCL).toFixed(2);
+  const currentRatio = latestCL === 0 ? 0 : +(latestCA / latestCL).toFixed(2);
+  const debtToEquity = latestNetWorth === 0 ? 0 : latestNCL / latestNetWorth;
+  const treasuryPctOfAssets = latestTA === 0 ? 0 : +((latestInv / latestTA) * 100).toFixed(1);
+
+  const figures: HeroFigure[] = [
+    { label: 'Total assets',      value: `₹${latestTA.toFixed(2)}` },
+    { label: 'Net worth',         value: `₹${latestNetWorth.toFixed(2)}`, accent: true },
+    { label: 'Treasury deployed', value: `₹${latestInv.toFixed(2)}` },
+    { label: 'Current ratio',     value: `${currentRatio.toFixed(2)}x` },
+  ];
+
+  const figureFontSize = isMobile ? 26 : isTablet ? 30 : 38;
+  const standfirstSize = isMobile ? 16 : isTablet ? 19 : 22;
+
+  return (
+    <section
+      className="fade-in-up"
+      style={{
+        animationDelay: '0.2s',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: isMobile ? 14 : 18,
+      }}
+    >
+      <p
+        style={{
+          fontFamily: FONTS.serif.family,
+          fontSize: standfirstSize,
+          fontWeight: 400,
+          fontStyle: 'italic',
+          lineHeight: 1.4,
+          color: 'var(--text-primary)',
+          letterSpacing: '-0.005em',
+          margin: 0,
+          maxWidth: '68ch',
+        }}
+      >
+        SpeakX closes FY 2025-26 with{' '}
+        <strong style={{ fontStyle: 'normal', fontWeight: 600 }}>
+          {mask(`₹${latestTA.toFixed(2)} Cr`)}
+        </strong>{' '}
+        of total assets, of which{' '}
+        <strong style={{ fontStyle: 'normal', fontWeight: 600 }}>
+          {mask(`${treasuryPctOfAssets.toFixed(1)}%`)}
+        </strong>{' '}
+        sits in the treasury pool (liquid mutual funds, corporate bonds, and
+        short-term deposits). The book is funded almost entirely by equity —
+        debt-to-equity stands at{' '}
+        <strong style={{ fontStyle: 'normal', fontWeight: 600 }}>
+          {debtToEquity.toFixed(4)}x
+        </strong>
+        {' '}— leaving a net worth of{' '}
+        <strong style={{ fontStyle: 'normal', fontWeight: 600, color: 'var(--accent-coral)' }}>
+          {mask(`₹${latestNetWorth.toFixed(2)} Cr`)}
+        </strong>
+        . Working capital runs at {mask(`₹${workingCapital.toFixed(2)} Cr`)},
+        negative by design: customer prepayments for subscription courses finance
+        the business at zero cost.
+      </p>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gap: isMobile ? 14 : 28,
+          paddingTop: isMobile ? 12 : 14,
+          borderTop: '1px solid var(--border-subtle)',
+        }}
+      >
+        {figures.map((f) => (
+          <div key={f.label}>
+            <div
+              style={{
+                fontFamily: FONTS.caption.family,
+                fontSize: 9,
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.14em',
+                color: 'var(--text-muted)',
+                marginBottom: 6,
+              }}
+            >
+              {f.label}
+            </div>
+            <div
+              style={{
+                fontFamily: FONTS.serif.family,
+                fontSize: figureFontSize,
+                fontWeight: 500,
+                lineHeight: 1,
+                color: f.accent ? 'var(--accent-coral)' : 'var(--text-primary)',
+                letterSpacing: '-0.02em',
+                fontVariantNumeric: 'tabular-nums lining-nums',
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: 4,
+              }}
+            >
+              <span>{mask(f.value)}</span>
+              {f.value.startsWith('₹') && (
+                <span
+                  style={{
+                    fontFamily: FONTS.caption.family,
+                    fontSize: 10,
+                    fontWeight: 500,
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.08em',
+                  }}
+                >
+                  Cr
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          paddingTop: 10,
+          borderTop: '1px dashed var(--border-subtle)',
+          fontFamily: FONTS.caption.family,
+          fontSize: 9,
+          fontWeight: 500,
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          color: 'var(--text-muted)',
+          lineHeight: 1.6,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '4px 12px',
+        }}
+      >
+        <span>
+          Debt/Equity {debtToEquity.toFixed(4)}x · Virtually debt-free
+        </span>
+        <span aria-hidden>·</span>
+        <span>
+          Working capital {mask(`₹${workingCapital.toFixed(2)} Cr`)} — agency float
+        </span>
+        <span aria-hidden>·</span>
+        <span>Current-period PBT rolled into equity so A = E + L ties at every period</span>
+      </div>
+    </section>
+  );
+}
+
+// ── Stacked Asset Chart (Fixed Assets / Treasury / Cash) — hero chart ───────
 
 function AssetChart() {
   const { period } = useDashboard();
+  const { mapColor } = useTheme();
+  const { isMobile } = useBreakpoint();
   const mask = useMaskedValue();
+
   const fa = aggregate(monthlyFixedAssets, period, true);
   const inv = aggregate(monthlyInvestments, period, true);
   const cash = aggregate(monthlyCA, period, true);
@@ -31,50 +241,145 @@ function AssetChart() {
   const axis = niceAxis(0, Math.max(...totals), 5);
   const range = axis.hi - axis.lo || 1;
 
-  const w = 440;
-  const h = 200;
-  const padL = 50;
-  const padR = 12;
-  const padT = 16;
-  const padB = 28;
+  const w = 880;
+  const h = isMobile ? 220 : 260;
+  const padL = 58;
+  const padR = 20;
+  const padT = 14;
+  const padB = 26;
   const cW = w - padL - padR;
   const cH = h - padT - padB;
-  const barW = Math.min(28, (cW / labels.length) * 0.6);
+  const barW = Math.min(32, (cW / labels.length) * 0.55);
   const toY = (v: number) => padT + cH - ((v - axis.lo) / range) * cH;
 
   const series = [
-    { label: 'Fixed Assets', color: '#BF5AF2', data: fa },
-    { label: 'Treasury', color: '#00FFCC', data: inv },
-    { label: 'Cash & Equivalents', color: '#39FF14', data: cash },
+    { label: 'Fixed assets',       slot: '#BF5AF2', data: fa },
+    { label: 'Treasury',           slot: '#00FFCC', data: inv },
+    { label: 'Cash & equivalents', slot: '#FFD700', data: cash },
   ];
 
+  const closing = totals[totals.length - 1];
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        fontFamily: "'Orbitron', monospace",
-        fontSize: 10,
-        color: 'var(--text-muted)',
-        letterSpacing: '0.1em',
-        marginBottom: 4,
-        textTransform: 'uppercase',
-        flexShrink: 0,
-      }}>
-        Asset Composition — PP&E · Treasury · Cash
-      </div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 4, flexShrink: 0, flexWrap: 'wrap' }}>
-        {series.map((s) => (
-          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 7, color: 'rgba(255,255,255,0.5)' }}>{s.label}</span>
+    <div
+      className="fade-in-up"
+      style={{
+        ...panelFrame,
+        animationDelay: '0.25s',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          marginBottom: 14,
+          flexShrink: 0,
+          gap: 12,
+          flexWrap: isMobile ? 'wrap' : undefined,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontFamily: FONTS.serif.family,
+              fontSize: isMobile ? SIZES.sectionTitleSm : SIZES.sectionTitle,
+              fontWeight: 500,
+              letterSpacing: '-0.01em',
+              color: 'var(--text-primary)',
+              lineHeight: 1.1,
+            }}
+          >
+            Asset composition
           </div>
-        ))}
+          <div
+            style={{
+              fontFamily: FONTS.caption.family,
+              fontSize: 9,
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color: 'var(--text-muted)',
+              marginTop: 3,
+            }}
+          >
+            Stacked · PP&E · Treasury · Cash · ₹ Crores
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontFamily: FONTS.sans.family }}>
+          {series.map((s) => (
+            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 8, height: 8, background: mapColor(s.slot) }} />
+              <span
+                style={{
+                  color: 'var(--text-muted)',
+                  fontFamily: FONTS.caption.family,
+                  fontSize: 9,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                }}
+              >
+                {s.label}
+              </span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontFamily: FONTS.caption.family,
+                fontSize: 9,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+              }}
+            >
+              Closing
+            </span>
+            <span
+              style={{
+                color: 'var(--text-primary)',
+                fontFamily: FONTS.data.family,
+                fontSize: 11,
+                fontWeight: 500,
+                fontVariantNumeric: 'tabular-nums lining-nums',
+              }}
+            >
+              {mask(formatCr(closing))}
+            </span>
+          </div>
+        </div>
       </div>
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+
+      <div style={{ position: 'relative', flex: 1, minHeight: isMobile ? 200 : 0, overflow: 'hidden' }}>
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${w} ${h}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display: 'block' }}
+        >
           {axis.ticks.map((tv) => (
             <g key={tv}>
-              <line x1={padL} y1={toY(tv)} x2={padL + cW} y2={toY(tv)} stroke="var(--chart-gridline)" strokeWidth={0.5} />
-              <text x={padL - 4} y={toY(tv) + 3} textAnchor="end" fill="var(--text-muted)" fontSize={6} fontFamily="'JetBrains Mono', monospace">
+              <line
+                x1={padL}
+                y1={toY(tv)}
+                x2={padL + cW}
+                y2={toY(tv)}
+                strokeDasharray="4 3"
+                strokeWidth={1}
+                style={{ stroke: 'var(--chart-gridline)' }}
+              />
+              <text
+                x={padL - 6}
+                y={toY(tv) + 3}
+                textAnchor="end"
+                style={{
+                  fontFamily: FONTS.label.family,
+                  fontSize: 9,
+                  fill: 'var(--text-muted)',
+                }}
+              >
                 {mask(formatCr(tv))}
               </text>
             </g>
@@ -82,7 +387,6 @@ function AssetChart() {
 
           {labels.map((_, i) => {
             const cx = padL + ((i + 0.5) / labels.length) * cW;
-            // Stack bottom-up: fa, then inv, then cash
             let cumBase = 0;
             return (
               <g key={i}>
@@ -91,7 +395,7 @@ function AssetChart() {
                   const segH = (v / range) * cH;
                   const segY = toY(cumBase + v);
                   cumBase += v;
-                  const isTop = si === series.length - 1;
+                  const color = mapColor(s.slot);
                   return (
                     <rect
                       key={si}
@@ -99,44 +403,54 @@ function AssetChart() {
                       y={segY}
                       width={barW}
                       height={segH}
-                      fill={s.color}
-                      rx={isTop ? 2 : 0}
-                      opacity={0.75}
+                      fill={color}
+                      opacity={0.72}
                     />
                   );
                 })}
-                <text
-                  x={cx}
-                  y={toY(totals[i]) - 3}
-                  textAnchor="middle"
-                  fill="rgba(255,255,255,0.75)"
-                  fontSize={6}
-                  fontFamily="'JetBrains Mono', monospace"
-                >
-                  {mask(formatCr(totals[i]))}
-                </text>
               </g>
             );
           })}
 
           {labels.map((m, i) => (
-            <text key={m} x={padL + ((i + 0.5) / labels.length) * cW} y={h - 4} textAnchor="middle"
-              fill="var(--text-muted)" fontSize={7} fontFamily="'JetBrains Mono', monospace">{m}</text>
+            <text
+              key={m}
+              x={padL + ((i + 0.5) / labels.length) * cW}
+              y={h - 4}
+              textAnchor="middle"
+              style={{
+                fontFamily: FONTS.label.family,
+                fontSize: 9,
+                fill: 'var(--text-muted)',
+              }}
+            >
+              {m}
+            </text>
           ))}
         </svg>
       </div>
+
+      <PanelFootnote
+        notes={[
+          'Fixed Assets = Tally PP&E group (IT equipment + office infra)',
+          'Treasury = liquid MFs, corporate bonds, short-term FDs',
+          'Cash = bank + Razorpay/PhonePe settlements',
+        ]}
+      />
     </div>
   );
 }
 
-// ── Equity & Liabilities Stacked Chart (Equity / NCL / CL) ─────────────────
+// ── Stacked Equity & Liabilities Chart — supporting chart ───────────────────
 
 function LiabilitiesChart() {
   const { period } = useDashboard();
+  const { mapColor } = useTheme();
+  const { isMobile } = useBreakpoint();
   const mask = useMaskedValue();
 
-  // Roll the current-month PBT into Equity so the chart ties to Total Assets
-  // at every period — see the note at the top of the page.
+  // Roll current-month PBT into equity so the chart ties to Total Assets
+  // at every period (BS identity A = E_rolled + NCL + CL).
   const equityRolled = monthlyEquity.map((e, i) => +(e + monthlyPBT[i]).toFixed(2));
   const eq = aggregate(equityRolled, period, true);
   const ncl = aggregate(monthlyNCL, period, true);
@@ -147,50 +461,145 @@ function LiabilitiesChart() {
   const axis = niceAxis(0, Math.max(...totals), 5);
   const range = axis.hi - axis.lo || 1;
 
-  const w = 440;
-  const h = 200;
-  const padL = 50;
-  const padR = 12;
-  const padT = 16;
-  const padB = 28;
+  const w = 880;
+  const h = isMobile ? 220 : 260;
+  const padL = 58;
+  const padR = 20;
+  const padT = 14;
+  const padB = 26;
   const cW = w - padL - padR;
   const cH = h - padT - padB;
-  const barW = Math.min(28, (cW / labels.length) * 0.6);
+  const barW = Math.min(32, (cW / labels.length) * 0.55);
   const toY = (v: number) => padT + cH - ((v - axis.lo) / range) * cH;
 
   const series = [
-    { label: 'Equity', color: '#64D2FF', data: eq },
-    { label: 'NCL (Loans)', color: '#BF5AF2', data: ncl },
-    { label: 'Current Liab.', color: '#FF9F0A', data: cl },
+    { label: 'Equity',          slot: '#64D2FF', data: eq },
+    { label: 'NCL (loans)',     slot: '#BF5AF2', data: ncl },
+    { label: 'Current liab.',   slot: '#FF9F0A', data: cl },
   ];
 
+  const closing = totals[totals.length - 1];
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        fontFamily: "'Orbitron', monospace",
-        fontSize: 10,
-        color: 'var(--text-muted)',
-        letterSpacing: '0.1em',
-        marginBottom: 4,
-        textTransform: 'uppercase',
-        flexShrink: 0,
-      }}>
-        Equity &amp; Liabilities — Funded &gt;98% by Equity
-      </div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 4, flexShrink: 0, flexWrap: 'wrap' }}>
-        {series.map((s) => (
-          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 7, color: 'rgba(255,255,255,0.5)' }}>{s.label}</span>
+    <div
+      className="fade-in-up"
+      style={{
+        ...panelFrame,
+        animationDelay: '0.3s',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          marginBottom: 14,
+          flexShrink: 0,
+          gap: 12,
+          flexWrap: isMobile ? 'wrap' : undefined,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontFamily: FONTS.serif.family,
+              fontSize: isMobile ? SIZES.sectionTitleSm : SIZES.sectionTitle,
+              fontWeight: 500,
+              letterSpacing: '-0.01em',
+              color: 'var(--text-primary)',
+              lineHeight: 1.1,
+            }}
+          >
+            Equity and liabilities
           </div>
-        ))}
+          <div
+            style={{
+              fontFamily: FONTS.caption.family,
+              fontSize: 9,
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color: 'var(--text-muted)',
+              marginTop: 3,
+            }}
+          >
+            Stacked · Funded &gt;98% by equity · ₹ Crores
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontFamily: FONTS.sans.family }}>
+          {series.map((s) => (
+            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 8, height: 8, background: mapColor(s.slot) }} />
+              <span
+                style={{
+                  color: 'var(--text-muted)',
+                  fontFamily: FONTS.caption.family,
+                  fontSize: 9,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                }}
+              >
+                {s.label}
+              </span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontFamily: FONTS.caption.family,
+                fontSize: 9,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+              }}
+            >
+              Closing
+            </span>
+            <span
+              style={{
+                color: 'var(--text-primary)',
+                fontFamily: FONTS.data.family,
+                fontSize: 11,
+                fontWeight: 500,
+                fontVariantNumeric: 'tabular-nums lining-nums',
+              }}
+            >
+              {mask(formatCr(closing))}
+            </span>
+          </div>
+        </div>
       </div>
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+
+      <div style={{ position: 'relative', flex: 1, minHeight: isMobile ? 200 : 0, overflow: 'hidden' }}>
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${w} ${h}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display: 'block' }}
+        >
           {axis.ticks.map((tv) => (
             <g key={tv}>
-              <line x1={padL} y1={toY(tv)} x2={padL + cW} y2={toY(tv)} stroke="var(--chart-gridline)" strokeWidth={0.5} />
-              <text x={padL - 4} y={toY(tv) + 3} textAnchor="end" fill="var(--text-muted)" fontSize={6} fontFamily="'JetBrains Mono', monospace">
+              <line
+                x1={padL}
+                y1={toY(tv)}
+                x2={padL + cW}
+                y2={toY(tv)}
+                strokeDasharray="4 3"
+                strokeWidth={1}
+                style={{ stroke: 'var(--chart-gridline)' }}
+              />
+              <text
+                x={padL - 6}
+                y={toY(tv) + 3}
+                textAnchor="end"
+                style={{
+                  fontFamily: FONTS.label.family,
+                  fontSize: 9,
+                  fill: 'var(--text-muted)',
+                }}
+              >
                 {mask(formatCr(tv))}
               </text>
             </g>
@@ -206,7 +615,7 @@ function LiabilitiesChart() {
                   const segH = (v / range) * cH;
                   const segY = toY(cumBase + v);
                   cumBase += v;
-                  const isTop = si === series.length - 1;
+                  const color = mapColor(s.slot);
                   return (
                     <rect
                       key={si}
@@ -214,132 +623,70 @@ function LiabilitiesChart() {
                       y={segY}
                       width={barW}
                       height={segH}
-                      fill={s.color}
-                      rx={isTop ? 2 : 0}
-                      opacity={0.75}
+                      fill={color}
+                      opacity={0.72}
                     />
                   );
                 })}
-                <text
-                  x={cx}
-                  y={toY(totals[i]) - 3}
-                  textAnchor="middle"
-                  fill="rgba(255,255,255,0.75)"
-                  fontSize={6}
-                  fontFamily="'JetBrains Mono', monospace"
-                >
-                  {mask(formatCr(totals[i]))}
-                </text>
               </g>
             );
           })}
 
           {labels.map((m, i) => (
-            <text key={m} x={padL + ((i + 0.5) / labels.length) * cW} y={h - 4} textAnchor="middle"
-              fill="var(--text-muted)" fontSize={7} fontFamily="'JetBrains Mono', monospace">{m}</text>
+            <text
+              key={m}
+              x={padL + ((i + 0.5) / labels.length) * cW}
+              y={h - 4}
+              textAnchor="middle"
+              style={{
+                fontFamily: FONTS.label.family,
+                fontSize: 9,
+                fill: 'var(--text-muted)',
+              }}
+            >
+              {m}
+            </text>
           ))}
         </svg>
       </div>
+
+      <PanelFootnote
+        notes={[
+          'Equity includes current-period PBT rolled from Sales/Expenses ledgers',
+          'NCL = long-term loans only — term deposits excluded',
+          'Current Liabilities step up in Nov-Mar = marketing vendor payables',
+        ]}
+      />
     </div>
   );
 }
 
-// ── Main Balance Sheet Page ────────────────────────────────────────────────
+// ── Main Balance Sheet Page ─────────────────────────────────────────────────
 
 export default function BalanceSheetPage() {
   const { period } = useDashboard();
   const { isMobile } = useBreakpoint();
 
-  // ── Latest month (Mar-26) snapshot ────────────────────────────────────────
   const latestTA = monthlyTotalAssets[11];
-  const latestFA = monthlyFixedAssets[11];
   const latestInv = monthlyInvestments[11];
   const latestCA = monthlyCA[11];
-  const latestEq = monthlyEquity[11];
   const latestCL = monthlyCL[11];
-  const latestNCL = monthlyNCL[11];
   const latestPBT = monthlyPBT[11];
 
-  // ── Rolled equity ties the BS identity ────────────────────────────────────
-  // Tally carries current-period P&L inside the Sales/Expenses ledgers until
-  // the year-end close transfers it to the P&L A/c group. So at any month M:
-  //     Tally's displayed Equity[M] = Capital[M] + cum(PBT[Apr..M-1])
-  // which is missing the current month's PBT. Adding PBT[M] back gives the
-  // "economic" equity the investor expects to see — and makes Total E&L
-  // reconcile to Total Assets exactly (verified by `bs-equation` validator).
-  const latestNetWorth = +(latestEq + latestPBT).toFixed(2);
-
-  // ── Working capital & ratios ──────────────────────────────────────────────
-  // WC < 0 is the signature of a cash-positive B2C operation: customers pay
-  // before service delivery (agency float) and vendor bills settle with a
-  // lag. Negative WC here is a feature, not a red flag — the company is being
-  // financed for free by its own customers.
   const workingCapital = +(latestCA - latestCL).toFixed(2);
   const currentRatio = latestCL === 0 ? 0 : +(latestCA / latestCL).toFixed(2);
-  const debtToEquity = latestNetWorth === 0 ? 0 : latestNCL / latestNetWorth;
   const treasuryPctOfAssets = latestTA === 0 ? 0 : +((latestInv / latestTA) * 100).toFixed(1);
-
-  const kpis = [
-    {
-      label: 'Total Assets',
-      value: formatCr(latestTA),
-      sub: `NCA ${formatCr(latestFA + latestInv)} + Cash ${formatCr(latestCA)}`,
-      positive: true,
-    },
-    {
-      label: 'Net Worth',
-      value: formatCr(latestNetWorth),
-      sub: `Capital + Reserves (Mar-26)`,
-      positive: true,
-    },
-    {
-      label: 'Treasury Deployed',
-      value: formatCr(latestInv),
-      sub: `${treasuryPctOfAssets.toFixed(1)}% of assets · MF/Bonds/FD`,
-    },
-    {
-      label: 'Working Capital',
-      value: formatCr(workingCapital),
-      sub: workingCapital < 0 ? 'Agency float (customer prepaid)' : 'CA − CL',
-      positive: workingCapital >= 0,
-      negative: workingCapital < 0,
-    },
-    {
-      label: 'Current Ratio',
-      value: `${currentRatio.toFixed(2)}x`,
-      sub: `CA ${formatCr(latestCA)} / CL ${formatCr(latestCL)}`,
-      // Negative WC is normal for this business — don't flag as a stress
-      // indicator unless the ratio collapses below 0.15.
-      negative: currentRatio < 0.15,
-    },
-    {
-      label: 'Debt / Equity',
-      value: `${debtToEquity.toFixed(4)}x`,
-      sub: debtToEquity < 0.05 ? 'Virtually debt-free' : 'Leveraged',
-      positive: debtToEquity < 0.05,
-    },
-  ];
 
   const labels = periodLabels(period);
   const tableHeaders = ['Item', ...labels];
 
-  // ── BS Table: sectioned, reconciled, and tied to the BS equation ─────────
-  //
-  // Key change from the prior version: Equity is now presented as
-  //   Capital Account
-  //     + P&L A/c (prior periods)
-  //     + Current Period PBT (not yet closed)
-  //   = Total Equity (rolled)
-  // so that  A = E_rolled + NCL + CL  holds at every period, matching the
-  // validator and what the investor expects to see. The "Current Period PBT"
-  // row is annotated in the classification footnote below.
-
+  // Roll current-period PBT into equity so A = E + L ties at every period
   const equityRolled = monthlyEquity.map((e, i) => +(e + monthlyPBT[i]).toFixed(2));
   const totalEL = equityRolled.map(
     (e, i) => +(e + monthlyNCL[i] + monthlyCL[i]).toFixed(2),
   );
 
-  const bsRows: DataRow[] = [
+  const bsRows: EditorialDataRow[] = [
     { label: '— Assets —', values: [], section: true },
     { label: 'Non-Current Assets', values: aggregate(monthlyNCA, period, true), bold: true },
     { label: 'Fixed Assets (PP&E)', values: aggregate(monthlyFixedAssets, period, true), indent: true },
@@ -358,69 +705,69 @@ export default function BalanceSheetPage() {
   ];
 
   return (
-    <PageShell>
-      <SectionHeader title="BALANCE SHEET" />
-      <KPIBar items={kpis} />
+    <EditorialPageShell
+      title="Balance sheet"
+      eyebrow="Route · Balance sheet · Mar-26 snapshot · Tally group-level TB"
+    >
+      <BalanceSheetHero />
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-        gap: 10,
-        marginBottom: 10,
-        flex: isMobile ? undefined : 1,
-        minHeight: isMobile ? undefined : 0,
-      }}>
-        <GlassCard>
-          <AssetChart />
-        </GlassCard>
-        <GlassCard delay={0.1}>
-          <LiabilitiesChart />
-        </GlassCard>
-      </div>
+      <hr className="rule rule--thick" style={{ margin: 0 }} />
 
-      <div style={{ flexShrink: 0 }}>
-        <DataTable
+      <AssetChart />
+
+      <hr className="rule" style={{ margin: 0 }} />
+
+      <LiabilitiesChart />
+
+      <hr className="rule" style={{ margin: 0 }} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 14 : 18 }}>
+        <div>
+          <div
+            style={{
+              fontFamily: FONTS.serif.family,
+              fontSize: isMobile ? SIZES.sectionTitleSm : SIZES.sectionTitle,
+              fontWeight: 500,
+              letterSpacing: '-0.01em',
+              color: 'var(--text-primary)',
+              lineHeight: 1.1,
+              marginBottom: 4,
+            }}
+          >
+            Line items
+          </div>
+          <div
+            style={{
+              fontFamily: FONTS.caption.family,
+              fontSize: 9,
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Ind-AS 1 / Schedule III · Equity rolled to tie the BS identity
+          </div>
+        </div>
+
+        <EditorialDataTable
           headers={tableHeaders}
           rows={bsRows}
           formatValue={(v) => formatCr(v)}
+          defaultOpen
+          toggleLabel="View balance sheet"
         />
 
-        <div style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 8,
-          color: 'rgba(255,255,255,0.4)',
-          marginTop: 8,
-          lineHeight: 1.5,
-          maxWidth: 880,
-          padding: '8px 10px',
-          background: 'rgba(100, 210, 255, 0.04)',
-          border: '1px solid rgba(100, 210, 255, 0.15)',
-          borderRadius: 6,
-        }}>
-          <strong style={{ color: 'rgba(100, 210, 255, 0.9)' }}>Classification notes (Ind-AS 1 / Schedule III):</strong>
-          {' '}
-          <strong>Investments</strong> ({formatCr(latestInv)}, {treasuryPctOfAssets.toFixed(1)}% of assets) is
-          treasury-deployed surplus — liquid mutual funds, corporate bonds, and short-term FDs — not
-          strategic subsidiaries or long-term equity stakes. These are effectively cash-like but carried
-          in NCA per Tally's group treatment.
-          {' '}
-          <strong>Current Assets</strong> ({formatCr(latestCA)}) is Cash &amp; Equivalents under the CA-as-Cash
-          classification used on the Cash page: HDFC/ICICI bank balances, Razorpay/PhonePe gateway
-          settlements, and short-term deposits. SpeakX is B2C so there are no trade receivables; GST
-          input and prepayments are immaterial at this scale.
-          {' '}
-          <strong>Current Period PBT</strong> ({formatCr(latestPBT)} in Mar-26) sits inside Tally's
-          Sales/Expenses ledgers until the year-end close transfers it to the P&amp;L A/c group. We roll
-          it into Total Equity here so the BS identity (A = E + L) ties at every period — this is the
-          same treatment the on-load validator uses to sanity-check the numbers.
-          {' '}
-          <strong>Working Capital</strong> ({formatCr(workingCapital)}) is negative by design: customer
-          prepayments for subscription courses and vendor payable float finance the business at zero cost.
-          Current Ratio of {currentRatio.toFixed(2)}x is low by textbook standards but appropriate for a
-          cash-positive B2C model — the {formatCr(latestInv)} treasury pool provides the real liquidity
-          cushion, not current assets.
-        </div>
+        <PanelFootnote
+          notes={[
+            `Investments (${treasuryPctOfAssets.toFixed(1)}% of assets) is treasury-deployed surplus — MFs, bonds, FDs — not strategic stakes`,
+            `Current Assets = Cash & Equivalents: bank + Razorpay/PhonePe + short-term deposits. No trade receivables (B2C model)`,
+            `Current Period PBT ${formatCr(latestPBT)} rolled into equity — Tally holds it in Sales/Expenses until year-end close`,
+            `Working Capital ${formatCr(workingCapital)} negative by design — customer prepayments finance the business`,
+            `Current Ratio ${currentRatio.toFixed(2)}x low but appropriate — treasury pool (${formatCr(latestInv)}) is the real liquidity cushion`,
+          ]}
+        />
       </div>
-    </PageShell>
+    </EditorialPageShell>
   );
 }
