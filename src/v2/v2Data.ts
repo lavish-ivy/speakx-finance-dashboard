@@ -15,11 +15,11 @@ import {
 
 // ── KPI Strip ──
 export const kpiData = [
-  { id: 'ytd-revenue',  label: 'YTD REVENUE',  value: financialKPIs.revenue.value,      unit: 'Cr', prefix: '₹', delta: null, deltaLabel: null },
-  { id: 'total-income', label: 'TOTAL INCOME',  value: financialKPIs.totalIncome.value,  unit: 'Cr', prefix: '₹', delta: null, deltaLabel: null },
+  { id: 'ytd-revenue',  label: 'YTD REVENUE',   value: financialKPIs.revenue.value,       unit: 'Cr', prefix: '₹', delta: null, deltaLabel: null },
+  { id: 'total-income', label: 'TOTAL INCOME',  value: financialKPIs.totalIncome.value,   unit: 'Cr', prefix: '₹', delta: null, deltaLabel: null },
   { id: 'total-exp',    label: 'TOTAL EXPENSES', value: financialKPIs.totalExpenses.value, unit: 'Cr', prefix: '₹', delta: null, deltaLabel: null },
-  { id: 'net-profit',   label: 'NET PROFIT',    value: financialKPIs.netProfit.value,    unit: 'Cr', prefix: '₹', delta: null, deltaLabel: null },
-  { id: 'net-margin',   label: 'NET MARGIN',    value: financialKPIs.netMargin.value,    unit: '%',  prefix: '',  delta: null, deltaLabel: null, highlight: true },
+  { id: 'pbt',          label: 'PBT (BOOKED)',  value: financialKPIs.pbt.value,           unit: 'Cr', prefix: '₹', delta: null, deltaLabel: null },
+  { id: 'est-pat',      label: 'EST. PAT',      value: financialKPIs.estPat.value,        unit: 'Cr', prefix: '₹', delta: null, deltaLabel: null, highlight: true },
 ];
 
 // ── Waterfall ──

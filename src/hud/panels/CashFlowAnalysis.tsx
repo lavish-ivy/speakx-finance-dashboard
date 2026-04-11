@@ -309,9 +309,17 @@ export default function CashFlowAnalysis() {
   const { mapColor } = useTheme();
   const { isMobile } = useBreakpoint();
 
+  /*
+   * KPI set: Operating CF → Free CF → Total Liquidity.
+   *
+   * Net Cash Flow was dropped in the Cash audit because it's a structural
+   * identity (equals ΔCash when OCF uses the full indirect method). FCF
+   * (OCF − CapEx) is what's actually left after sustaining the business,
+   * so it replaces NetCF as the middle chip.
+   */
   const kpis = [
     cashFlowData.ytd.ocf,
-    cashFlowData.ytd.netCF,
+    cashFlowData.ytd.fcf,
     cashFlowData.ytd.liquidity,
   ];
 

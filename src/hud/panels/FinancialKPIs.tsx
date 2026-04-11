@@ -1,6 +1,6 @@
 import React from 'react';
-import { financialKPIs } from '../../data/mockData';
-import { formatCurrency, formatPercent } from '../../utils/formatCurrency';
+import { financialKPIs, estTaxProvision } from '../../data/mockData';
+import { formatCurrency } from '../../utils/formatCurrency';
 type KPIKey = keyof typeof financialKPIs;
 import Sparkline from '../shared/Sparkline';
 import { useTheme } from '../../theme/ThemeContext';
@@ -11,32 +11,32 @@ interface KpiRow {
   value: string;
   color: string;
   sparkline: number[] | null;
-  isPercent: boolean;
+  tooltip?: string;
 }
 
-/* Ordered: Revenue → Other Income → Total Income → Total Expenses → Net Profit → Net Margin */
-const kpiKeyOrder: KPIKey[] = ['revenue', 'otherIncome', 'totalIncome', 'totalExpenses', 'netProfit', 'netMargin'];
+/**
+ * Ordering: Revenue → Other Income → Total Income → Total Expenses → PBT → Est. PAT
+ *
+ * Previously this strip showed a single "NET PROFIT" row sourced from monthlyPAT,
+ * which equals PBT in the raw Tally data because the year-end tax provision is
+ * not booked monthly. That was a silent mislabel — the HUD's top-line number
+ * was pre-tax but presented as post-tax. The final two rows now expose the
+ * same "Booked PBT vs Estimated PAT @115BAA" framing the P&L page uses.
+ */
+const kpiKeyOrder: KPIKey[] = ['revenue', 'otherIncome', 'totalIncome', 'totalExpenses', 'pbt', 'estPat'];
 
-const kpiLabels: Record<KPIKey, string> = {
-  revenue: 'REVENUE',
-  otherIncome: 'OTHER INCOME',
-  totalIncome: 'TOTAL INCOME',
-  totalExpenses: 'TOTAL EXPENSES',
-  netProfit: 'NET PROFIT',
-  netMargin: 'NET MARGIN',
-};
+const estPatTooltip = `Estimated post-provision PAT at the statutory 115BAA rate (${(
+  estTaxProvision.rate * 100
+).toFixed(2)}%). Actual provision is booked by the tax advisor at year-end close; Tally currently reports ₹0 tax.`;
 
 const kpiRows: KpiRow[] = kpiKeyOrder.map((key) => {
   const kpi = financialKPIs[key];
-  const isPercent = kpi.unit === '%';
   return {
-    label: kpiLabels[key],
-    value: isPercent
-      ? formatPercent(kpi.value)
-      : formatCurrency(kpi.value, kpi.unit, 'currency' in kpi ? kpi.currency : '₹'),
+    label: kpi.label,
+    value: formatCurrency(kpi.value, kpi.unit, kpi.currency),
     color: kpi.color,
     sparkline: kpi.sparkline,
-    isPercent,
+    tooltip: key === 'estPat' ? estPatTooltip : undefined,
   };
 });
 
@@ -79,6 +79,7 @@ const FinancialKPIs: React.FC = () => {
         {kpiRows.map((kpi, index) => (
           <div
             key={kpi.label}
+            title={kpi.tooltip}
             style={{
               flex: 1,
               display: 'flex',
@@ -91,6 +92,7 @@ const FinancialKPIs: React.FC = () => {
                   : 'none',
               whiteSpace: isMobile ? undefined : 'nowrap',
               overflow: 'hidden',
+              cursor: kpi.tooltip ? 'help' : undefined,
             }}
             className="fade-in-up"
           >
@@ -102,7 +104,7 @@ const FinancialKPIs: React.FC = () => {
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 color: 'var(--text-muted)',
-                minWidth: isMobile ? 80 : 105,
+                minWidth: isMobile ? 80 : 115,
                 flexShrink: 0,
               }}
             >
@@ -112,7 +114,7 @@ const FinancialKPIs: React.FC = () => {
             <span
               style={{
                 fontFamily: "'Inter', sans-serif",
-                fontSize: kpi.isPercent ? (isMobile ? 18 : 20) : (isMobile ? 22 : 28),
+                fontSize: isMobile ? 22 : 28,
                 fontWeight: 700,
                 color: mapColor(kpi.color),
                 filter: `drop-shadow(0 0 8px ${mapColor(kpi.color)}66)`,

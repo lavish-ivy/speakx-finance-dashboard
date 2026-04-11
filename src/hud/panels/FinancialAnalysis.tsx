@@ -34,7 +34,14 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 }
 
-/* ── Donut Chart — P&L waterfall ───────────────────── */
+/* ── Donut Chart — P&L composition (Total Income reconciliation) ────
+ *
+ * Segments sum exactly to Total Income: COGS + OpEx + PBT = Rev + OtherIncome.
+ * The previous version stacked Revenue / Total Expenses / Other Income /
+ * Net Profit as pie slices, which was mathematically incoherent — those
+ * values aren't parts of a whole. This version answers the honest question
+ * "Where did every rupee of Total Income go?" with a clean reconciliation.
+ */
 
 function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; isMobile: boolean }) {
   const [hovered, setHovered] = useState<number | null>(null);
@@ -53,7 +60,7 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
     requestAnimationFrame(tick);
   }, []);
 
-  const total = financialAnalysis.donut.reduce((s, d) => s + d.value, 0);
+  const total = financialAnalysis.total.value;
   const gapDeg = 4;
   const totalGap = gapDeg * financialAnalysis.donut.length;
   const available = 360 - totalGap;
@@ -118,7 +125,7 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
         })}
       </svg>
 
-      {/* Center label — Net Profit */}
+      {/* Center label — Total Income (the sum of all segments) */}
       <div
         style={{
           position: 'absolute',
@@ -138,12 +145,12 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
             fontFamily: FONTS.data.family,
             fontSize: isMobile ? 16 : 15,
             fontWeight: 700,
-            color: mapColor('#FFD700'),
+            color: mapColor(financialAnalysis.total.color),
             lineHeight: 1,
-            filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.3))',
+            filter: 'drop-shadow(0 0 6px rgba(0,255,204,0.3))',
           }}
         >
-          ₹{financialAnalysis.donut[3].value.toFixed(2)} Cr
+          ₹{financialAnalysis.total.value.toFixed(2)} Cr
         </div>
         <div
           style={{
@@ -155,7 +162,7 @@ function DonutChart({ mapColor, isMobile }: { mapColor: (c: string) => string; i
             marginTop: 1,
           }}
         >
-          NET PROFIT
+          {financialAnalysis.total.label}
         </div>
       </div>
     </div>
@@ -169,7 +176,7 @@ export default function FinancialAnalysis() {
   const { isMobile } = useBreakpoint();
   const [isHovered, setIsHovered] = useState(false);
 
-  const total = financialAnalysis.donut.reduce((s, d) => s + d.value, 0);
+  const total = financialAnalysis.total.value;
   const segments = financialAnalysis.donut.map((d) => ({
     ...d,
     percentage: Math.round((d.value / total) * 100),
@@ -200,7 +207,7 @@ export default function FinancialAnalysis() {
           flexShrink: 0,
         }}
       >
-        P&amp;L OVERVIEW
+        INCOME COMPOSITION
       </div>
 
       {/* Donut + Legend side by side */}

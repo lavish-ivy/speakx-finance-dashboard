@@ -5,7 +5,7 @@ import {
   monthlyRevenue as monthlyRevenueLakhs,
   monthlyCOGS as monthlyCOGSLakhs,
   monthlyTotalOpex as monthlyOpexLakhs,
-  monthlyPAT as monthlyPATLakhs,
+  monthlyPBT as monthlyPBTLakhs,
 } from '../../data/financialData';
 import { useTheme } from '../../theme/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
@@ -29,17 +29,23 @@ const sumLakhsAsCr = (lakhs: number[]): number =>
 // Build the three display series directly from the Lakhs source of truth.
 // Each point is an exact single /100 conversion — no per-month toFixed in Cr,
 // so labels sum back to the YTD annotations rendered in the chart header.
+//
+// NOTE: the third series is the Tally-booked PBT, not "Net Profit". Since the
+// current-year tax provision is only booked at year-end close, Tally reports
+// ₹0 tax monthly and what used to display as "Net Profit" was silently the
+// pre-tax number. Labeling it PBT here matches the FinancialKPIs strip and
+// the P&L page's Booked-PBT vs Estimated-PAT framing.
 const monthlyRevenueCr = monthlyRevenueLakhs.map(lakhsToCr);
 const monthlyExpensesCr = monthlyCOGSLakhs.map(
   (c, i) => lakhsToCr(c + monthlyOpexLakhs[i]),
 );
-const monthlyNetProfitCr = monthlyPATLakhs.map(lakhsToCr);
+const monthlyPBTCr = monthlyPBTLakhs.map(lakhsToCr);
 
 const ytdRevenueCr = sumLakhsAsCr(monthlyRevenueLakhs);
 const ytdExpensesCr = sumLakhsAsCr(
   monthlyCOGSLakhs.map((c, i) => c + monthlyOpexLakhs[i]),
 );
-const ytdNetProfitCr = sumLakhsAsCr(monthlyPATLakhs);
+const ytdPBTCr = sumLakhsAsCr(monthlyPBTLakhs);
 
 interface ChartSeries {
   name: string;
@@ -49,9 +55,9 @@ interface ChartSeries {
 }
 
 const chartSeries: ChartSeries[] = [
-  { name: 'Revenue', color: '#00FFCC', data: monthlyRevenueCr, ytdCr: ytdRevenueCr },
+  { name: 'Revenue',  color: '#00FFCC', data: monthlyRevenueCr,  ytdCr: ytdRevenueCr },
   { name: 'Expenses', color: '#FF453A', data: monthlyExpensesCr, ytdCr: ytdExpensesCr },
-  { name: 'Net Profit', color: '#FFD700', data: monthlyNetProfitCr, ytdCr: ytdNetProfitCr },
+  { name: 'PBT',      color: '#FFD700', data: monthlyPBTCr,      ytdCr: ytdPBTCr },
 ];
 
 const glassCard: React.CSSProperties = {

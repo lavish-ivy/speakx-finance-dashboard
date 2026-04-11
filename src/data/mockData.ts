@@ -24,16 +24,17 @@ import {
   monthlyCOGS as monthlyCOGSLakhs,
   monthlyTotalOpex as monthlyOpExLakhs,
   monthlyOtherIncome as monthlyOtherIncomeLakhs,
-  monthlyPAT as monthlyPATLakhs,
-  monthlyNCA as monthlyNCALakhs,
+  monthlyPBT as monthlyPBTLakhs,
   monthlyCA as monthlyCALakhs,
+  monthlyFixedAssets as monthlyFixedAssetsLakhs,
+  monthlyInvestments as monthlyInvestmentsLakhsReal,
   monthlyEquity as monthlyEquityLakhs,
   monthlyNCL as monthlyNCLLakhs,
   monthlyCL as monthlyCLLakhs,
   monthlyTotalAssets as monthlyTotalAssetsLakhs,
-  monthlyInvestments as monthlyInvestmentsLakhsReal,
   monthlyOCF as monthlyOCFLakhs,
-  monthlyNetCF as monthlyNetCFLakhs,
+  monthlyFreeCashFlow as monthlyFCFLakhs,
+  STATUTORY_TAX_RATE,
 } from './financialData';
 
 // ── Unit conversion helpers ─────────────────────────────────────────────────
@@ -60,10 +61,9 @@ const monthlyExpenses = monthlyCOGSLakhs.map((c, i) =>
   toCr(c + monthlyOpExLakhs[i]),
 );
 const monthlyOtherIncome = toCrArray(monthlyOtherIncomeLakhs);
-const monthlyNetProfit = toCrArray(monthlyPATLakhs);
-const monthlyNetMarginPct = monthlyRevenue.map((r, i) =>
-  r === 0 ? 0 : +((monthlyNetProfit[i] / r) * 100).toFixed(1),
-);
+// Monthly PBT (pre-tax). Equals booked PAT in the raw Tally numbers — kept
+// separate so UI surfaces don't silently mislabel pre-tax figures.
+const monthlyPBT = toCrArray(monthlyPBTLakhs);
 
 // ── Derived YTD totals (in Crores) ──────────────────────────────────────────
 // CRITICAL: sum in Lakhs first, convert once — see sumLakhsAsCr comment above.
@@ -75,24 +75,38 @@ const ytdTotalExp = sumLakhsAsCr(
   monthlyCOGSLakhs.map((c, i) => c + monthlyOpExLakhs[i]),
 );
 const ytdOtherIncome = sumLakhsAsCr(monthlyOtherIncomeLakhs);
-const ytdNetProfit = sumLakhsAsCr(monthlyPATLakhs);
+// Booked PBT — equals PAT in the raw Tally numbers because the current-year
+// tax provision is only booked at year-end close by the tax advisor.
+const ytdPBT = sumLakhsAsCr(monthlyPBTLakhs);
+
+// Estimated post-provision PAT — computed at the statutory 115BAA rate so the
+// HUD surfaces the same "Booked PBT vs Estimated PAT" narrative the P&L page
+// uses. Only applied when PBT is positive (no benefit recognised on losses).
+const estTaxProvisionCr = ytdPBT > 0 ? +(ytdPBT * STATUTORY_TAX_RATE).toFixed(2) : 0;
+const estPATPostProvisionCr = +(ytdPBT - estTaxProvisionCr).toFixed(2);
+
 const ytdTotalIncome = sumLakhsAsCr(
   monthlyRevenueLakhs.map((r, i) => r + monthlyOtherIncomeLakhs[i]),
 );
-const ytdNetMargin = +((ytdNetProfit / ytdRevenue) * 100).toFixed(1);
 
 // ── Balance Sheet closing (Mar-26, derived from financialData) ──────────────
 
 const idxMar = 11;
 const totalAssetsCr = toCr(monthlyTotalAssetsLakhs[idxMar]);
-const totalEquityCr = toCr(monthlyEquityLakhs[idxMar]);
+
+// Rolled net worth: Tally's displayed Equity misses the current-period PBT
+// (it still sits in P&L A/c until year-end close). The BS identity
+// A = E_rolled + NCL + CL only holds after we add PBT[M] back to Equity[M].
+// See BalanceSheetPage equityRolled rationale — this is the same operation.
+const totalEquityCr = toCr(monthlyEquityLakhs[idxMar] + monthlyPBTLakhs[idxMar]);
 const totalLiabilitiesCr = toCr(
   monthlyNCLLakhs[idxMar] + monthlyCLLakhs[idxMar],
 );
-const investmentsMarCr = toCr(
-  monthlyNCALakhs[idxMar] - /* fixed assets, approximated from old ledger detail */ 232.56,
-);
-const fixedAssetsMarCr = 2.33; // Tally group-level Mar-26 Fixed Assets closing
+
+// Treasury (Investments) and Fixed Assets sourced directly from their own
+// Tally sub-head series — no more `monthlyNCA − 232.56` hardcoded arithmetic.
+const investmentsMarCr = toCr(monthlyInvestmentsLakhsReal[idxMar]);
+const fixedAssetsMarCr = toCr(monthlyFixedAssetsLakhs[idxMar]);
 const currentAssetsMarCr = toCr(monthlyCALakhs[idxMar]);
 
 // ── OpEx breakdown (ledger-level reference, NOT reconciled to group total) ──
@@ -116,44 +130,31 @@ const opexCategories = opexRawBreakdown.map((row) => ({
 
 // ── Exports ─────────────────────────────────────────────────────────────────
 
+/**
+ * Top-line KPI strip for the HUD. `pbt` is the Tally-booked pre-tax profit;
+ * `estPat` is the same number after an estimated 115BAA provision — together
+ * they preserve the P&L-page narrative on a single-screen overview. Kept under
+ * the keys the FinancialKPIs panel already consumes so no downstream churn.
+ */
 export const financialKPIs = {
-  revenue:      { value: ytdRevenue,     unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: monthlyRevenue },
-  otherIncome:  { value: ytdOtherIncome, unit: 'Cr', currency: '₹', color: '#64D2FF', sparkline: null },
-  totalIncome:  { value: ytdTotalIncome, unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: null },
-  totalExpenses:{ value: ytdTotalExp,    unit: 'Cr', currency: '₹', color: '#FF453A', sparkline: monthlyExpenses },
-  netProfit:    { value: ytdNetProfit,   unit: 'Cr', currency: '₹', color: '#BF5AF2', sparkline: monthlyNetProfit },
-  netMargin:    { value: ytdNetMargin,   unit: '%',                  color: '#FFD700', sparkline: monthlyNetMarginPct },
+  revenue:       { value: ytdRevenue,             unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: monthlyRevenue, label: 'REVENUE' },
+  otherIncome:   { value: ytdOtherIncome,         unit: 'Cr', currency: '₹', color: '#64D2FF', sparkline: null,           label: 'OTHER INCOME' },
+  totalIncome:   { value: ytdTotalIncome,         unit: 'Cr', currency: '₹', color: '#00FFCC', sparkline: null,           label: 'TOTAL INCOME' },
+  totalExpenses: { value: ytdTotalExp,            unit: 'Cr', currency: '₹', color: '#FF453A', sparkline: monthlyExpenses, label: 'TOTAL EXPENSES' },
+  pbt:           { value: ytdPBT,                 unit: 'Cr', currency: '₹', color: '#BF5AF2', sparkline: monthlyPBT,      label: 'PBT (BOOKED)' },
+  estPat:        { value: estPATPostProvisionCr,  unit: 'Cr', currency: '₹', color: '#FFD700', sparkline: null,           label: 'EST. PAT @25.17%' },
+};
+
+/** Exposed so the panel tooltip can show the provision that bridges PBT→PAT. */
+export const estTaxProvision = {
+  rate: STATUTORY_TAX_RATE,
+  amountCr: estTaxProvisionCr,
 };
 
 // ── Quarterly aggregates (derived) ──────────────────────────────────────────
 
 const quarterSlice = (arr: number[], q: number): number[] => arr.slice(q * 3, q * 3 + 3);
 const qSum = (arr: number[], q: number): number => sum(quarterSlice(arr, q));
-
-const q2Rev = qSum(monthlyRevenue, 1);
-const q3Rev = qSum(monthlyRevenue, 2);
-const q2Net = qSum(monthlyNetProfit, 1);
-const q3Net = qSum(monthlyNetProfit, 2);
-const q2Opex = qSum(monthlyExpenses, 1);
-const q3Opex = qSum(monthlyExpenses, 2);
-
-const pctChange = (curr: number, base: number): string => {
-  if (base === 0) return '—';
-  const sign = curr - base >= 0 ? '+' : '';
-  // For QoQ on a positive base, standard % change. For a negative base, we
-  // report the absolute swing labelled accordingly since "% of a negative" is
-  // meaningless to most readers.
-  if (base < 0) {
-    return `${sign}${(curr - base).toFixed(2)} Cr`;
-  }
-  return `${sign}${(((curr - base) / base) * 100).toFixed(1)}%`;
-};
-
-export const qoqGrowth = {
-  revenue: { label: 'REV',     change: pctChange(q3Rev, q2Rev),  color: q3Rev < q2Rev ? '#FF453A' : '#00FFCC' },
-  opex:    { label: 'OPEX',    change: pctChange(q3Opex, q2Opex), color: q3Opex > q2Opex ? '#FF453A' : '#00FFCC' },
-  netPnl:  { label: 'NET P&L', change: pctChange(q3Net, q2Net),   color: q3Net < q2Net ? '#FF453A' : '#00FFCC' },
-};
 
 export const additionalMetrics = {
   totalExpenses: { label: 'Total Expenses',  value: ytdTotalExp,    unit: 'Cr', currency: '₹', color: '#FF453A' },
@@ -174,15 +175,29 @@ export const operatingExpenses = {
   breakdown: opexCategories,
 };
 
-// ── Financial Analysis donut ────────────────────────────────────────────────
+// ── P&L Composition donut ───────────────────────────────────────────────────
+//
+// The old donut stacked [Revenue, Total Expenses, Other Income, Net Profit] as
+// four pie slices, which was mathematically incoherent — those values aren't
+// parts of a whole (Revenue already contains Expenses and Profit).
+//
+// Correct reconciliation:
+//   Total Income = Revenue + Other Income
+//                = COGS + Total OpEx + PBT
+//
+// So the donut now answers "Where did every rupee of Total Income go?", with
+// three segments that actually sum to the centre value. This is the same
+// identity the P&L waterfall proves in financialData.ts validators.
+const donutTotalIncome = ytdTotalIncome;
+const donutSegments = [
+  { segment: 'Direct Costs (COGS)', value: ytdDirectExp,   unit: 'Cr' as const, color: '#FF453A' },
+  { segment: 'Operating Expenses',  value: ytdIndirectExp, unit: 'Cr' as const, color: '#FF9F0A' },
+  { segment: 'PBT (Booked)',        value: ytdPBT,         unit: 'Cr' as const, color: '#FFD700' },
+];
 
 export const financialAnalysis = {
-  donut: [
-    { segment: 'Revenue',        value: ytdRevenue,     unit: 'Cr', color: '#00FFCC' },
-    { segment: 'Total Expenses', value: ytdTotalExp,    unit: 'Cr', color: '#FF453A' },
-    { segment: 'Other Income',   value: ytdOtherIncome, unit: 'Cr', color: '#BF5AF2' },
-    { segment: 'Net Profit',     value: ytdNetProfit,   unit: 'Cr', color: '#FFD700' },
-  ],
+  total: { label: 'TOTAL INCOME', value: donutTotalIncome, unit: 'Cr' as const, currency: '₹', color: '#00FFCC' },
+  donut: donutSegments,
   expenseComposition: {
     total: { value: ytdTotalExp, unit: 'Cr', currency: '₹', color: '#FF453A' },
     label: 'EXPENSE BREAKDOWN',
@@ -195,26 +210,33 @@ export const financialAnalysis = {
 export const marginTrends = {
   months: [...MONTHS],
   series: [
-    { name: 'Revenue',    color: '#00FFCC', data: monthlyRevenue },
-    { name: 'Expenses',   color: '#FF453A', data: monthlyExpenses },
-    { name: 'Net Profit', color: '#FFD700', data: monthlyNetProfit },
+    { name: 'Revenue',  color: '#00FFCC', data: monthlyRevenue },
+    { name: 'Expenses', color: '#FF453A', data: monthlyExpenses },
+    { name: 'PBT',      color: '#FFD700', data: monthlyPBT },
   ],
 };
 
 // ── Cash Flow YTD snapshot ──────────────────────────────────────────────────
 
 const ytdOCFCr = sumLakhsAsCr(monthlyOCFLakhs);
-const ytdNetCFCr = sumLakhsAsCr(monthlyNetCFLakhs);
+const ytdFCFCr = sumLakhsAsCr(monthlyFCFLakhs);
 
 // Liquidity = Current Assets (bank/wallets) + Investments — the actually-liquid
 // portion of NCA. Excludes Fixed Assets (property, equipment) which are not cash-
 // convertible. Previously mis-labelled as totalAssetsCr which inflated by ₹2.33 Cr.
 const totalLiquidityCr = +(currentAssetsMarCr + investmentsMarCr).toFixed(2);
 
+/**
+ * NOTE on the FCF chip: after the Cash audit we proved that NetCF is a pure
+ * structural identity (ΔCash), so showing it as a standalone KPI conveys no
+ * information beyond what the Liquidity number already does. Free Cash Flow
+ * (OCF − CapEx) is the actual "what's left after sustaining the business"
+ * number the board cares about, so it replaces the NetCF chip here.
+ */
 export const cashFlowData = {
   ytd: {
     ocf:       { label: 'Operating CF',    value: ytdOCFCr,        unit: 'Cr', currency: '₹', color: '#00FFCC' },
-    netCF:     { label: 'Net Cash Flow',   value: ytdNetCFCr,      unit: 'Cr', currency: '₹', color: '#00FFCC' },
+    fcf:       { label: 'Free Cash Flow',  value: ytdFCFCr,        unit: 'Cr', currency: '₹', color: '#00FFCC' },
     liquidity: { label: 'Total Liquidity', value: totalLiquidityCr, unit: 'Cr', currency: '₹', color: '#BF5AF2' },
   },
   monthlyOCF: {
@@ -246,28 +268,34 @@ export const waterfallData = [
   { label: 'Gross Profit',  value: +(ytdRevenue - ytdDirectExp).toFixed(2), delta: null, color: '#00FFCC' },
   { label: 'OpEx',          value: ytdIndirectExp,                        delta: null, color: '#FF453A' },
   { label: 'Other Income',  value: ytdOtherIncome,                        delta: null, color: '#64D2FF' },
-  { label: 'Net Profit',    value: ytdNetProfit,                          delta: null, color: '#FFD700' },
+  { label: 'PBT (Booked)',  value: ytdPBT,                                delta: null, color: '#FFD700' },
 ];
 
 // ── Profitability Ratios (ROA uses derived total assets) ───────────────────
+// ROA is computed on PBT (pre-tax) to match the rest of the HUD, since
+// Tally has not booked the current-year tax provision yet. The P&L page's
+// separate "post-provision PAT" view is the place where the ROA impact of
+// the estimated provision is discussed — not here.
 
 const monthlyOPE = monthlyExpenses.map((e, i) =>
   monthlyRevenue[i] === 0 ? 0 : +((e / monthlyRevenue[i]) * 100).toFixed(1),
 );
-const monthlyROA = monthlyNetProfit.map((n) =>
-  totalAssetsCr === 0 ? 0 : +((n / totalAssetsCr) * 100).toFixed(1),
+const monthlyROA = monthlyPBT.map((p) =>
+  totalAssetsCr === 0 ? 0 : +((p / totalAssetsCr) * 100).toFixed(1),
 );
 
 export const profitabilityData = {
-  ope: { label: 'OPE RATIO', currentValue: +((ytdTotalExp / ytdRevenue) * 100).toFixed(1), points: monthlyOPE, color: '#00FFCC' },
-  roa: { label: 'ROA',       currentValue: +((ytdNetProfit / totalAssetsCr) * 100).toFixed(1), points: monthlyROA, color: '#FF00E5' },
+  ope: { label: 'OPE RATIO',    currentValue: +((ytdTotalExp / ytdRevenue) * 100).toFixed(1),  points: monthlyOPE, color: '#00FFCC' },
+  roa: { label: 'ROA (pre-tax)', currentValue: +((ytdPBT / totalAssetsCr) * 100).toFixed(1),   points: monthlyROA, color: '#FF00E5' },
 };
 
 // ── Balance Sheet snapshot (Mar-26, group-level from Tally) ────────────────
 
+// Rolled Net Worth includes current-period PBT (see totalEquityCr). With the
+// rollup applied the BS identity Assets ≡ Equity + Liabilities holds at 2dp.
 export const balanceSheetData = {
   equityAndLiabilities: [
-    { metric: 'Total Equity',          value: totalEquityCr, bold: true },
+    { metric: 'Net Worth (rolled)',    value: totalEquityCr, bold: true },
     { metric: 'Loans (Secured)',       value: toCr(monthlyNCLLakhs[idxMar]), bold: false },
     { metric: 'Current Liabilities',   value: toCr(monthlyCLLakhs[idxMar]), bold: false },
     { metric: 'Total Liabilities',     value: totalLiabilitiesCr, bold: true },
@@ -333,7 +361,7 @@ export const historicalTrendsData = {
   series: [
     { label: 'Revenue',      color: '#00FFCC', points: monthlyRevenue },
     { label: 'Expenses',     color: '#FF453A', points: monthlyExpenses },
-    { label: 'Net Profit',   color: '#FFD700', points: monthlyNetProfit },
+    { label: 'PBT',          color: '#FFD700', points: monthlyPBT },
     { label: 'Other Income', color: '#A855F7', points: monthlyOtherIncome },
   ],
 };
