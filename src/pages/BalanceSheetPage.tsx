@@ -20,6 +20,9 @@ import {
   aggregate,
   periodLabels,
   formatCr,
+  investmentsMonthly,
+  capitalAccountMonthly,
+  fixedAssetsMonthly,
 } from '../data/financialData';
 import { niceAxis } from '../utils/chartMath';
 
@@ -693,8 +696,31 @@ export default function BalanceSheetPage() {
       values: aggregate(monthlyNCA, period, true),
       bold: true,
       children: [
-        { label: 'Fixed Assets (PP&E)', values: aggregate(monthlyFixedAssets, period, true), indent: true },
-        { label: 'Investments (Treasury)', values: aggregate(monthlyInvestments, period, true), indent: true },
+        {
+          label: 'Fixed Assets (PP&E)',
+          values: aggregate(monthlyFixedAssets, period, true),
+          indent: true,
+          children: [
+            { label: 'Tangible Assets', values: aggregate(fixedAssetsMonthly.tangible, period, true), indent: true },
+            { label: 'Intangible Assets', values: aggregate(fixedAssetsMonthly.intangible, period, true), indent: true },
+            { label: 'Less: Accumulated Depreciation', values: aggregate(fixedAssetsMonthly.accumulatedDepr.map(v => -v), period, true), indent: true },
+          ],
+        },
+        {
+          label: 'Investments (Treasury)',
+          values: aggregate(monthlyInvestments, period, true),
+          indent: true,
+          children: [
+            { label: 'Mutual Fund', values: aggregate(investmentsMonthly.mutualFund, period, true), indent: true },
+            { label: 'Corporate Bonds', values: aggregate(investmentsMonthly.corporateBonds, period, true), indent: true },
+            { label: 'FD ICICI', values: aggregate(investmentsMonthly.fdICICI, period, true), indent: true },
+            { label: 'Corporate FD', values: aggregate(investmentsMonthly.corporateFD, period, true), indent: true },
+            { label: 'FD Kotak', values: aggregate(investmentsMonthly.fdKotak, period, true), indent: true },
+            { label: 'FD Yes Bank', values: aggregate(investmentsMonthly.fdYesBank, period, true), indent: true },
+            { label: 'FD RBL', values: aggregate(investmentsMonthly.fdRBL, period, true), indent: true },
+            { label: 'FD HDFC', values: aggregate(investmentsMonthly.fdHDFC, period, true), indent: true },
+          ],
+        },
       ],
     },
     { label: 'Current Assets (Cash & Equiv.)', values: aggregate(monthlyCA, period, true), bold: true },
@@ -706,7 +732,16 @@ export default function BalanceSheetPage() {
       values: aggregate(equityRolled, period, true),
       bold: true,
       children: [
-        { label: 'Capital Account', values: aggregate(monthlyCapital, period, true), indent: true },
+        {
+          label: 'Capital Account',
+          values: aggregate(monthlyCapital, period, true),
+          indent: true,
+          children: [
+            { label: 'Reserves & Surplus', values: aggregate(capitalAccountMonthly.reservesSurplus, period, true), indent: true },
+            { label: 'Preference Share Capital', values: aggregate(capitalAccountMonthly.preferenceShareCapital, period, true), indent: true },
+            { label: 'Equity Share Capital', values: aggregate(capitalAccountMonthly.equityShareCapital, period, true), indent: true },
+          ],
+        },
         { label: 'P&L A/c (prior periods)', values: aggregate(monthlyPnLAccount, period, true), indent: true },
         { label: 'Current Period PBT (not yet closed)', values: aggregate(monthlyPBT, period, true), indent: true },
       ],

@@ -80,8 +80,10 @@ function Row({
   formatValue,
   mask,
   columnCount,
+  depth = 0,
 }: {
   row: EditorialDataRow;
+  depth?: number;
   formatValue: (val: number) => string;
   mask: (v: string) => string;
   columnCount: number;
@@ -118,13 +120,15 @@ function Row({
       ? '1px solid var(--border-card)'
       : '1px solid transparent';
 
-  const labelColor = row.highlight
-    ? 'var(--accent-coral)'
-    : row.bold
-      ? 'var(--text-primary)'
-      : row.pctRow
-        ? 'var(--text-muted)'
-        : 'var(--text-secondary)';
+  const labelColor = depth > 0
+    ? 'var(--text-muted)'
+    : row.highlight
+      ? 'var(--accent-coral)'
+      : row.bold
+        ? 'var(--text-primary)'
+        : row.pctRow
+          ? 'var(--text-muted)'
+          : 'var(--text-secondary)';
 
   const labelStyle: React.CSSProperties = {
     fontFamily: FONTS.sans.family,
@@ -133,7 +137,7 @@ function Row({
     fontWeight: row.bold ? 600 : 400,
     fontStyle: row.pctRow ? 'italic' : 'normal',
     padding: '7px 6px',
-    paddingLeft: row.indent ? 22 : 6,
+    paddingLeft: depth > 0 ? 22 + (depth - 1) * 14 : row.indent ? 22 : 6,
     whiteSpace: 'nowrap',
     textAlign: 'left',
   };
@@ -150,6 +154,7 @@ function Row({
   };
 
   const cellColor = (val: number): string => {
+    if (depth > 0) return val < 0 ? 'var(--accent-coral)' : 'var(--text-muted)';
     if (row.pctRow) return 'var(--text-muted)';
     if (row.highlight) return 'var(--accent-coral)';
     if (val < 0) return 'var(--accent-coral)';
@@ -162,14 +167,20 @@ function Row({
     return mask(formatValue(val));
   };
 
+  const Tr = depth > 0 ? motion.tr : 'tr';
+  const trProps = depth > 0
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2 } }
+    : {};
+
   return (
     <>
-      <tr
+      <Tr
         onClick={hasChildren ? () => setExpanded(!expanded) : undefined}
         style={{
           borderBottom: rowBorderBottom,
           cursor: hasChildren ? 'pointer' : 'default',
         }}
+        {...trProps}
       >
         <td style={labelStyle}>
           {hasChildren && <ExpandArrow expanded={expanded} />}
@@ -192,61 +203,19 @@ function Row({
             {fmtVal(row.ytd)}
           </td>
         )}
-      </tr>
+      </Tr>
       <AnimatePresence>
         {expanded &&
-          row.children?.map((child) => {
-            const isPct = !!child.pctRow;
-            const fmtChild = (val: number): string =>
-              isPct ? mask(`${val.toFixed(1)}%`) : mask(formatValue(val));
-            const childColor = (val: number): string =>
-              isPct ? 'var(--text-muted)' : val < 0 ? 'var(--accent-coral)' : 'var(--text-muted)';
-
-            return (
-              <motion.tr
-                key={child.label}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <td
-                  style={{
-                    ...labelStyle,
-                    paddingLeft: 36,
-                    color: 'var(--text-muted)',
-                    fontStyle: isPct ? 'italic' : 'normal',
-                  }}
-                >
-                  {child.label}
-                </td>
-                {child.values.map((v, i) => (
-                  <td
-                    key={i}
-                    style={{
-                      ...cellStyle,
-                      color: childColor(v),
-                      fontStyle: isPct ? 'italic' : cellStyle.fontStyle,
-                    }}
-                  >
-                    {fmtChild(v)}
-                  </td>
-                ))}
-                {child.ytd !== undefined && (
-                  <td
-                    style={{
-                      ...cellStyle,
-                      color: childColor(child.ytd),
-                      fontStyle: isPct ? 'italic' : cellStyle.fontStyle,
-                      borderLeft: '1px solid var(--border-subtle)',
-                    }}
-                  >
-                    {fmtChild(child.ytd)}
-                  </td>
-                )}
-              </motion.tr>
-            );
-          })}
+          row.children?.map((child) => (
+            <Row
+              key={child.label}
+              row={child}
+              formatValue={formatValue}
+              mask={mask}
+              columnCount={columnCount}
+              depth={depth + 1}
+            />
+          ))}
       </AnimatePresence>
     </>
   );

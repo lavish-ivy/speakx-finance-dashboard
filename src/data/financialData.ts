@@ -2,10 +2,9 @@
  * Granular monthly financial data — sourced from Tally ERP (IVYPODS TECHNOLOGY PVT LTD).
  * All amounts in Lakhs (Rs.). Converted to Crores for display via formatCr().
  *
- * Data refreshed: 2026-04-10 from live group-level Trial Balance (12 monthly calls).
- * Top-line P&L and BS snapshots from Tally group-level TB. OpEx sub-categories from
- * ledger-level reference (sub-cats do NOT reconcile to Total OpEx — see comment on
- * opexMonthly below).
+ * Data refreshed: 2026-04-12 from Tally ERP ledger-level Trial Balance.
+ * All P&L sub-categories (opexMonthly, otherIncomeMonthly) reconcile exactly
+ * to their parent group totals. BS data from Tally group-level TB.
  *
  * IMPORTANT: This file is the SINGLE SOURCE OF TRUTH for the dashboard. Any aggregate
  * consumed by mockData.ts, v2Data.ts, or HUD panels must be derived here. See
@@ -32,28 +31,36 @@ export const monthlyCOGS = [6.43, 6.47, 6.61, 5.73, 5.63, 5.15, 5.06, 4.59, 4.70
 export const monthlyGrossProfit = monthlyRevenue.map((r, i) => +(r - monthlyCOGS[i]).toFixed(2));
 
 /**
- * OpEx sub-categories (monthly, Rs. Lakhs).
+ * OpEx sub-categories (monthly, Rs. Lakhs) — Tally ledger-level actuals.
  *
- * WARNING: These come from ledger-level reference data and DO NOT sum to
- * monthlyTotalOpex (group-level). The drift is largest in Nov-Mar (late-year
- * adjustments, ESOP provisions, ISO/audit entries). Do not expand sub-categories
- * alongside the parent without a reconciliation footer.
+ * Every named key maps 1:1 to a Tally ledger under the Indirect Expenses
+ * group. `otherMisc` is the residual (group total − sum of named) so that
+ * sum(all keys) === monthlyTotalOpex for every month.
+ *
+ * Synced from: speakx-mis-automation/output/ledger_tb/fy2526_detailed.json
  */
 export const opexMonthly = {
-  employeeBenefits:    [53.31, 57.08, 86.59, 60.19, 54.08, 110.64, 91.77, 227.39, 95.79, 116.13, 106.78, 0.55],
-  performanceMarketing:[112.85, 146.32, 176.08, 192.91, 183.85, 157.32, 157.83, 287.77, 329.74, 298.93, 279.28, 19.40],
-  itExpenses:          [1.48, 36.74, 30.14, 43.95, 40.02, 28.23, 37.38, 19.07, 21.47, 28.69, 49.75, 3.28],
-  professionalCharges: [0.95, 3.22, 5.86, 33.73, 4.06, 2.50, 47.33, 22.55, 5.06, 19.44, 9.58, 4.69],
-  auditFees:           [0.00, 0.00, 0.00, 0.00, 0.00, 7.08, 0.00, 7.34, 0.00, 0.00, 0.00, 0.00],
-  freelancerServices:  [0.20, 0.30, 0.00, 0.00, 0.00, 0.90, 0.07, 1.56, 2.84, 0.70, 5.76, 3.25],
-  financeCharges:      [10.20, 12.20, 26.80, 14.24, 12.64, 16.17, 5.41, 3.75, 8.88, 8.77, 0.66, 0.05],
-  officeExpenses:      [1.34, 0.53, 0.92, 1.50, 0.85, 1.91, 3.00, 2.62, 1.34, 0.81, 0.51, 0.50],
-  rent:                [1.34, 1.34, 1.34, 1.44, 1.44, 1.44, 1.44, 1.44, 1.49, 1.49, 1.49, 2.89],
-  travelConveyance:    [0.69, 1.10, 3.13, 0.87, 3.61, 0.73, 0.92, 3.50, 4.02, 4.51, 1.61, 0.37],
-  telephone:           [0.18, 0.14, 0.16, 0.48, 0.17, 0.36, 1.13, 0.23, 0.26, 0.52, 0.40, 0.26],
-  insurance:           [0.19, 0.19, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.22, 2.36],
-  repairsMaintenance:  [0.13, 0.36, 0.14, 0.44, 0.32, 0.54, 0.27, 0.06, 0.90, 0.12, 0.29, 0.10],
-  otherMisc:           [0.39, 0.77, 0.35, 0.79, 0.88, 0.05, 0.67, 5.00, 1.23, 0.28, 0.86, 0.00],
+  employeeBenefits:    [53.31, 57.08, 86.59, 60.19, 54.08, 110.64, 91.77, 227.39, 95.79, 116.12, 106.78, 116.19],
+  performanceMarketing:[112.85, 146.32, 176.08, 192.91, 183.85, 157.32, 157.83, 287.77, 329.74, 298.93, 279.28, 335.31],
+  itExpenses:          [0.31, 28.60, 30.14, 43.95, 39.95, 28.23, 37.38, 19.04, 21.47, 28.69, 49.74, 45.36],
+  professionalCharges: [0.95, 3.22, 5.86, 33.73, 4.06, 2.50, 47.33, 22.55, 5.06, 19.44, 9.58, 11.98],
+  financeCharges:      [10.20, 12.20, 26.80, 14.24, 12.64, 16.17, 5.41, 3.55, 8.77, 8.77, 0.66, 9.20],
+  depreciation:        [1.01, 1.03, 1.10, 1.22, 1.28, 1.38, 1.95, 1.90, 1.94, 2.18, 2.77, 2.73],
+  travelConveyance:    [0.69, 1.10, 3.13, 0.87, 3.61, 0.73, 0.92, 3.50, 4.02, 4.51, 1.61, 16.33],
+  rent:                [1.34, 1.34, 1.34, 1.44, 1.44, 1.44, 1.44, 1.44, 1.49, 1.49, 1.49, 3.18],
+  officeExpenses:      [1.34, 0.53, 0.92, 1.50, 0.85, 1.91, 3.00, 2.54, 1.34, 0.81, 0.53, 1.24],
+  freelancerServices:  [0.20, 0.30, 0.00, 0.00, 0.00, 0.90, 0.07, 1.56, 2.84, 0.70, 5.76, 2.85],
+  auditorFee:          [0.00, 0.00, 0.00, 0.00, 0.00, 7.08, 0.00, -6.83, 0.00, 0.00, 0.00, 15.00],
+  trainingDevelopment: [0.01, 0.61, 0.00, 0.03, 0.00, 0.00, 0.00, 4.83, -0.03, 0.00, 0.00, 0.00],
+  repairsMaintenance:  [0.13, 0.36, 0.14, 0.44, 0.32, 0.54, 0.27, 0.06, 0.90, 0.12, 0.29, 0.45],
+  telephone:           [0.18, 0.14, 0.16, 0.48, 0.17, -0.36, 1.13, 0.23, 0.26, 0.52, 0.40, 0.32],
+  insurance:           [0.18, 0.18, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.21, 0.48],
+  interestOnCarLoan:   [0.25, 0.24, 0.23, 0.21, 0.20, 0.19, 0.17, 0.16, 0.15, 0.14, 0.12, 0.11],
+  foreignExchange:     [0.18, 0.04, 0.32, 0.19, 0.51, 0.04, 0.17, 0.16, 0.20, 0.00, -0.06, 0.00],
+  powerFuel:           [0.19, 0.00, 0.00, 0.00, 0.20, 0.00, 1.29, 0.00, 0.00, 0.00, 0.54, 0.00],
+  lossDamageAssets:    [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 3.32],
+  /** Residual = Indirect Expenses group − sum(named). Catches rounding + micro-ledgers. */
+  otherMisc:           [0.03, 0.11, 0.03, 0.01, 0.19, 0.02, -0.16, 0.01, 0.03, 0.04, 0.28, 0.24],
 };
 
 /**
@@ -68,7 +75,7 @@ export const opexMonthly = {
  * For the P&L waterfall (investor / Ind-AS view) we split Finance Costs out
  * below EBIT. See `monthlyFinanceCosts` and `monthlyOperatingExpenses`.
  */
-export const monthlyTotalOpex = [183.35, 253.40, 333.04, 351.61, 303.55, 328.93, 350.17, 570.06, 474.17, 482.66, 459.98, 564.25];
+export const monthlyTotalOpex = [183.35, 253.40, 333.04, 351.61, 303.55, 328.93, 350.17, 570.06, 474.17, 482.66, 459.98, 564.29];
 
 /**
  * Finance Costs per month (pulled out of `opexMonthly.financeCharges` so it
@@ -80,11 +87,12 @@ export const monthlyTotalOpex = [183.35, 253.40, 333.04, 351.61, 303.55, 328.93,
 export const monthlyFinanceCosts = [...opexMonthly.financeCharges];
 
 /**
- * Operating Expenses = Total OpEx − Finance Costs.
- * This is the number that flows into the EBITDA derivation (GP − OpEx ex-fin).
+ * Operating Expenses = Total OpEx − Finance Costs − Depreciation.
+ * This is the number that flows into the EBITDA derivation (GP − OpEx ex-fin-dep).
+ * Finance Costs sit below EBIT per Ind-AS 1. Depreciation sits between EBITDA and EBIT.
  */
 export const monthlyOperatingExpenses = monthlyTotalOpex.map(
-  (o, i) => +(o - monthlyFinanceCosts[i]).toFixed(2),
+  (o, i) => +(o - monthlyFinanceCosts[i] - opexMonthly.depreciation[i]).toFixed(2),
 );
 
 /**
@@ -99,28 +107,25 @@ export const monthlyEBITDA = monthlyGrossProfit.map(
   (g, i) => +(g - monthlyOperatingExpenses[i]).toFixed(2),
 );
 
-/** Depreciation (Tally group-level is folded into Indirect Expenses — kept as 0 to avoid double-count) */
-export const monthlyDepreciation = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+/** Depreciation (Tally Depreciation A/c ledger — broken out of OpEx for EBITDA→EBIT split) */
+export const monthlyDepreciation = [...opexMonthly.depreciation];
 
 /** EBIT = EBITDA − Depreciation (auto-computed) */
 export const monthlyEBIT = monthlyEBITDA.map((e, i) => +(e - monthlyDepreciation[i]).toFixed(2));
 
 /**
- * Other Income sub-categories (ledger-level reference).
- *
- * WARNING: These do NOT reconcile to monthlyOtherIncome (group-level). March in
- * particular has a large year-end MF redemption / tax refund booking that
- * isn't broken out at ledger level.
+ * Other Income sub-categories (Tally Indirect Incomes ledger-level actuals).
+ * Ledger sums reconcile to monthlyOtherIncome (group total) within rounding.
  */
 export const otherIncomeMonthly = {
-  mutualFundIncome:  [0.08, 10.79, 1.35, 0.70, 3.59, 2.81, 1.67, 0.93, 13.38, 9.92, 4.91, 0.00],
-  interestOnFD:      [0.00, 0.00, 0.00, 0.00, 0.00, 0.16, 0.00, 0.00, 28.51, 0.00, 0.00, 0.00],
+  mutualFundIncome:  [0.08, 10.79, 1.35, 0.70, 3.59, 2.81, 1.67, 0.93, 13.38, 9.92, 4.91, 6.74],
+  interestOnFD:      [0.00, 0.00, 0.00, 0.00, 0.00, 0.16, 0.00, 0.00, 28.51, 0.00, 0.00, 197.90],
   interestOnLoans:   [0.49, 0.51, 0.49, 0.51, 0.51, 0.49, 0.51, 0.49, 0.51, 0.51, 0.46, 0.51],
-  incomeTaxRefund:   [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 3.44, 3.44],
+  incomeTaxRefund:   [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.18, 0.00],
 };
 
-/** Other Income (Indirect Incomes period activity, Tally cache 2026-04-09) */
-export const monthlyOtherIncome = [0.57, 11.30, 1.85, 1.21, 4.10, 3.46, 2.18, 1.43, 42.39, 10.43, 5.55, 144.38];
+/** Other Income (Indirect Incomes period activity, Tally ledger-level 2026-04-10) */
+export const monthlyOtherIncome = [0.57, 11.30, 1.85, 1.21, 4.10, 3.46, 2.18, 1.43, 42.39, 10.43, 5.55, 205.14];
 
 /**
  * PBT = EBIT − Finance Costs + Other Income (auto-computed).
@@ -155,19 +160,19 @@ export const monthlyPAT = monthlyPBT.map((p, i) => +(p - monthlyTax[i]).toFixed(
  * monthlyNCA === monthlyFixedAssets + monthlyInvestments (per-month).
  */
 export const monthlyFixedAssets = [75.10, 77.47, 81.01, 86.83, 89.16, 131.73, 152.81, 153.87, 162.72, 231.62, 235.45, 232.56];
-export const monthlyInvestments = [1055.23, 1247.45, 3992.08, 4192.75, 4281.26, 11043.91, 11175.84, 11451.92, 11305.62, 11217.47, 10972.90, 10968.06];
+export const monthlyInvestments = [1055.23, 1247.45, 3992.08, 4192.75, 4281.26, 11043.91, 11175.84, 11451.92, 11305.62, 11217.47, 10972.90, 11022.75];
 
 /** Non-Current Assets = Fixed Assets + Investments */
 export const monthlyNCA = monthlyFixedAssets.map((f, i) => +(f + monthlyInvestments[i]).toFixed(2));
 
 /** Current Assets (Tally group-level closing) */
-export const monthlyCA       = [193.48, 171.55, 252.71, 155.70, 258.04, 168.69, 134.70, 179.74, 150.00, 156.28, 215.29, 195.56];
+export const monthlyCA       = [193.48, 171.55, 252.71, 155.70, 258.04, 168.69, 134.70, 179.74, 150.00, 156.28, 215.29, 201.63];
 
 /** Non-Current Liabilities = Loans (Liability) */
 export const monthlyNCL      = [31.34, 29.71, 28.06, 26.40, 24.74, 23.06, 45.38, 19.67, 17.95, 16.38, 14.87, 13.31];
 
 /** Current Liabilities */
-export const monthlyCL       = [98.72, 133.83, 307.79, 278.60, 310.03, 318.94, 364.30, 756.97, 601.25, 660.48, 600.28, 810.00];
+export const monthlyCL       = [98.72, 133.83, 307.79, 278.60, 310.03, 318.94, 364.30, 756.97, 601.25, 660.48, 600.28, 810.04];
 
 /**
  * Equity sub-heads (Tally group-level closing balances).
@@ -191,6 +196,36 @@ export const monthlyEquity = monthlyCapital.map((c, i) => +(c + monthlyPnLAccoun
 
 /** Total Assets = NCA + CA */
 export const monthlyTotalAssets = monthlyNCA.map((n, i) => +(n + monthlyCA[i]).toFixed(2));
+
+// ── BS Ledger-Level Breakdowns (Rs. Lakhs, month-end closing, Tally 2026-04-10) ──
+
+/** Investments sub-breakdown (Tally ledger closing balances) */
+export const investmentsMonthly = {
+  mutualFund:     [966.52, 908.74, 1063.37, 1264.05, 1002.56, 5671.85, 3620.32, 3935.32, 3598.36, 3110.22, 2865.64, 2737.38],
+  corporateFD:    [0.00, 250.00, 1049.00, 1049.00, 1399.00, 1399.00, 1399.00, 1399.00, 1424.66, 1424.66, 1424.66, 1479.34],
+  corporateBonds: [0.00, 0.00, 0.00, 0.00, 0.00, 1058.35, 3216.81, 3177.89, 3177.89, 3177.89, 3177.89, 3177.89],
+  fdICICI:        [63.71, 63.71, 1854.71, 1854.71, 1854.71, 1854.71, 1854.71, 1854.71, 1854.71, 1854.71, 1854.71, 1940.54],
+  fdKotak:        [0.00, 0.00, 0.00, 0.00, 0.00, 960.00, 985.00, 985.00, 985.00, 985.00, 985.00, 1013.80],
+  fdYesBank:      [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 400.00, 400.00, 404.79],
+  fdRBL:          [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 250.00, 250.00, 250.00, 253.99],
+  fdHDFC:         [25.00, 25.00, 25.00, 25.00, 25.00, 15.01, 15.01, 15.01, 15.01, 15.01, 15.01, 15.01],
+  bajajLiquid:    [0.00, 0.00, 0.00, 0.00, 0.00, 35.00, 35.00, 35.00, 0.00, 0.00, 0.00, 0.00],
+  bajajMoneyMkt:  [0.00, 0.00, 0.00, 0.00, 0.00, 50.00, 50.00, 50.00, 0.00, 0.00, 0.00, 0.00],
+};
+
+/** Capital Account sub-breakdown (Tally ledger closing balances) */
+export const capitalAccountMonthly = {
+  reservesSurplus:       [934.26, 934.26, 3497.92, 3529.25, 3554.25, 10181.10, 10219.69, 10351.87, 10351.87, 10351.87, 10351.87, 10351.87],
+  preferenceShareCapital:[7.07, 7.07, 11.44, 11.49, 11.53, 19.26, 19.30, 20.08, 20.08, 20.08, 20.08, 20.08],
+  equityShareCapital:    [3.02, 3.02, 3.02, 3.02, 3.02, 3.02, 3.02, 3.02, 3.02, 3.02, 3.02, 3.02],
+};
+
+/** Fixed Assets sub-breakdown (Tally ledger closing balances) */
+export const fixedAssetsMonthly = {
+  tangible:              [88.83, 92.23, 96.87, 103.90, 106.88, 150.83, 173.86, 176.82, 187.61, 258.69, 265.29, 261.81],
+  intangible:            [0.00, 0.00, 0.00, 0.00, 0.64, 0.64, 0.64, 0.64, 0.64, 0.64, 0.64, 0.64],
+  accumulatedDepr:       [13.73, 14.76, 15.86, 17.08, 18.36, 19.74, 21.69, 23.58, 25.53, 27.71, 30.48, 29.89],
+};
 
 // ── Cash Flow Monthly Data (Rs. Lakhs) — May25 to Mar26 ──────────────────
 // Indirect method derived from month-over-month BS changes.
@@ -336,14 +371,19 @@ export const pnlStructure: PnlRow[] = [
       { label: 'Performance Marketing', monthly: opexMonthly.performanceMarketing, ytd: sumArr(opexMonthly.performanceMarketing), indent: true },
       { label: 'IT Expenses', monthly: opexMonthly.itExpenses, ytd: sumArr(opexMonthly.itExpenses), indent: true },
       { label: 'Professional Charges', monthly: opexMonthly.professionalCharges, ytd: sumArr(opexMonthly.professionalCharges), indent: true },
-      { label: 'Audit Fees', monthly: opexMonthly.auditFees, ytd: sumArr(opexMonthly.auditFees), indent: true },
-      { label: 'Freelancer Services', monthly: opexMonthly.freelancerServices, ytd: sumArr(opexMonthly.freelancerServices), indent: true },
-      { label: 'Rent', monthly: opexMonthly.rent, ytd: sumArr(opexMonthly.rent), indent: true },
       { label: 'Travel & Conveyance', monthly: opexMonthly.travelConveyance, ytd: sumArr(opexMonthly.travelConveyance), indent: true },
+      { label: 'Rent', monthly: opexMonthly.rent, ytd: sumArr(opexMonthly.rent), indent: true },
       { label: 'Office Expenses', monthly: opexMonthly.officeExpenses, ytd: sumArr(opexMonthly.officeExpenses), indent: true },
+      { label: 'Freelancer Services', monthly: opexMonthly.freelancerServices, ytd: sumArr(opexMonthly.freelancerServices), indent: true },
+      { label: 'Auditor Fee', monthly: opexMonthly.auditorFee, ytd: sumArr(opexMonthly.auditorFee), indent: true },
+      { label: 'Training & Development', monthly: opexMonthly.trainingDevelopment, ytd: sumArr(opexMonthly.trainingDevelopment), indent: true },
+      { label: 'Repairs & Maintenance', monthly: opexMonthly.repairsMaintenance, ytd: sumArr(opexMonthly.repairsMaintenance), indent: true },
       { label: 'Telephone', monthly: opexMonthly.telephone, ytd: sumArr(opexMonthly.telephone), indent: true },
       { label: 'Insurance', monthly: opexMonthly.insurance, ytd: sumArr(opexMonthly.insurance), indent: true },
-      { label: 'Repairs & Maintenance', monthly: opexMonthly.repairsMaintenance, ytd: sumArr(opexMonthly.repairsMaintenance), indent: true },
+      { label: 'Interest on Car Loan', monthly: opexMonthly.interestOnCarLoan, ytd: sumArr(opexMonthly.interestOnCarLoan), indent: true },
+      { label: 'Foreign Exchange', monthly: opexMonthly.foreignExchange, ytd: sumArr(opexMonthly.foreignExchange), indent: true },
+      { label: 'Power & Fuel', monthly: opexMonthly.powerFuel, ytd: sumArr(opexMonthly.powerFuel), indent: true },
+      { label: 'Loss on Damage', monthly: opexMonthly.lossDamageAssets, ytd: sumArr(opexMonthly.lossDamageAssets), indent: true },
       { label: 'Other Misc', monthly: opexMonthly.otherMisc, ytd: sumArr(opexMonthly.otherMisc), indent: true },
     ],
   },
@@ -503,11 +543,13 @@ export const opexChartSeries = [
   { label: 'IT Expenses', color: '#00FFCC', data: opexMonthly.itExpenses },
   { label: 'Professional Charges', color: '#64D2FF', data: opexMonthly.professionalCharges },
   { label: 'Other OpEx', color: '#8A8F98', data: (() => {
-    // Sum all the smaller categories (excluding finance charges)
-    const other = opexMonthly.auditFees.map((_, i) =>
-      +(opexMonthly.auditFees[i] + opexMonthly.freelancerServices[i] + opexMonthly.officeExpenses[i] +
-        opexMonthly.rent[i] + opexMonthly.travelConveyance[i] + opexMonthly.telephone[i] +
-        opexMonthly.insurance[i] + opexMonthly.repairsMaintenance[i] + opexMonthly.otherMisc[i]).toFixed(2)
+    // Sum all smaller categories (excluding finance charges and depreciation)
+    const other = opexMonthly.rent.map((_, i) =>
+      +(opexMonthly.travelConveyance[i] + opexMonthly.rent[i] + opexMonthly.officeExpenses[i] +
+        opexMonthly.freelancerServices[i] + opexMonthly.auditorFee[i] + opexMonthly.trainingDevelopment[i] +
+        opexMonthly.repairsMaintenance[i] + opexMonthly.telephone[i] + opexMonthly.insurance[i] +
+        opexMonthly.interestOnCarLoan[i] + opexMonthly.foreignExchange[i] + opexMonthly.powerFuel[i] +
+        opexMonthly.lossDamageAssets[i] + opexMonthly.otherMisc[i]).toFixed(2)
     );
     return other;
   })() },
@@ -584,13 +626,13 @@ function validateFinancialData(): ValidationIssue[] {
     }
   }
 
-  // 5. Operating Expenses + Finance Costs reconcile to Total OpEx (Tally group)
+  // 5. Operating Expenses + Finance Costs + Depreciation reconcile to Total OpEx (Tally group)
   for (let i = 0; i < 12; i++) {
-    const expected = monthlyOperatingExpenses[i] + monthlyFinanceCosts[i];
+    const expected = monthlyOperatingExpenses[i] + monthlyFinanceCosts[i] + monthlyDepreciation[i];
     if (Math.abs(expected - monthlyTotalOpex[i]) > tol) {
       issues.push({
         check: 'opex-split',
-        detail: `${MONTHS[i]}: OpEx-ex-fin ${monthlyOperatingExpenses[i]} + Finance ${monthlyFinanceCosts[i]} ≠ Total OpEx ${monthlyTotalOpex[i]}`,
+        detail: `${MONTHS[i]}: OpEx ${monthlyOperatingExpenses[i]} + Fin ${monthlyFinanceCosts[i]} + Dep ${monthlyDepreciation[i]} ≠ Total ${monthlyTotalOpex[i]}`,
       });
     }
   }
