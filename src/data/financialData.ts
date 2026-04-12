@@ -341,32 +341,16 @@ export const pnlStructure: PnlRow[] = [
     bold: true,
   },
   {
-    label: 'Cost of Revenue',
-    monthly: monthlyCOGS,
-    ytd: sumArr(monthlyCOGS),
-  },
-  {
-    label: 'Gross Profit',
-    monthly: monthlyGrossProfit,
-    ytd: sumArr(monthlyGrossProfit),
-    bold: true,
-    highlight: true,
-  },
-  {
-    label: 'Gross Margin %',
-    monthly: monthlyRevenue.map((r, i) => r === 0 ? 0 : +((monthlyGrossProfit[i] / r) * 100).toFixed(1)),
-    ytd: +((sumArr(monthlyGrossProfit) / sumArr(monthlyRevenue)) * 100).toFixed(1),
-    pctRow: true,
-  },
-  {
-    // Parent uses monthlyOperatingExpenses (TotalOpex − FinanceCosts) so the
-    // P&L waterfall subtracts only true operating costs to arrive at EBITDA.
-    // Finance Costs moved to its own line below EBIT per Ind-AS 1.
+    // Operating Expenses includes Cost of Revenue (Direct Expenses) as the
+    // first child. COGS is not shown as a standalone line — at 98.6% gross
+    // margin it's immaterial and clutters the waterfall. The parent total is
+    // Indirect OpEx (ex-finance, ex-dep); COGS appears for reference only.
     label: 'Operating Expenses',
     monthly: monthlyOperatingExpenses,
     ytd: sumArr(monthlyOperatingExpenses),
     bold: true,
     children: [
+      { label: 'Cost of Revenue', monthly: monthlyCOGS, ytd: sumArr(monthlyCOGS), indent: true },
       { label: 'Employee Benefits', monthly: opexMonthly.employeeBenefits, ytd: sumArr(opexMonthly.employeeBenefits), indent: true },
       { label: 'Performance Marketing', monthly: opexMonthly.performanceMarketing, ytd: sumArr(opexMonthly.performanceMarketing), indent: true },
       { label: 'IT Expenses', monthly: opexMonthly.itExpenses, ytd: sumArr(opexMonthly.itExpenses), indent: true },
