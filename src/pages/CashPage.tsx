@@ -793,9 +793,16 @@ export default function CashPage() {
     { label: '— Operating activities —', values: [], ytd: 0, section: true },
     { label: 'Operating Cash Flow', values: aggregateCF(monthlyOCF, period), ytd: totalOCF, bold: true },
     { label: '— Investing activities —', values: [], ytd: 0, section: true },
-    { label: 'CapEx (Fixed Assets)', values: aggregateCF(monthlyCapEx, period), ytd: totalCapEx, indent: true },
-    { label: 'Treasury (MF / Bonds / FD)', values: aggregateCF(monthlyTreasuryCF, period), ytd: totalTreasury, indent: true },
-    { label: 'Investing Cash Flow', values: aggregateCF(monthlyICF, period), ytd: totalICF, bold: true },
+    {
+      label: 'Investing Cash Flow',
+      values: aggregateCF(monthlyICF, period),
+      ytd: totalICF,
+      bold: true,
+      children: [
+        { label: 'CapEx (Fixed Assets)', values: aggregateCF(monthlyCapEx, period), ytd: totalCapEx, indent: true },
+        { label: 'Treasury (MF / Bonds / FD)', values: aggregateCF(monthlyTreasuryCF, period), ytd: totalTreasury, indent: true },
+      ],
+    },
     { label: '— Financing activities —', values: [], ytd: 0, section: true },
     { label: 'Financing Cash Flow', values: aggregateCF(monthlyFinancingCF, period), ytd: totalFinCF, bold: true },
     { label: '— Results —', values: [], ytd: 0, section: true },
@@ -885,25 +892,54 @@ export default function CashPage() {
 
   const directRows: EditorialDataRow[] = [
     { label: '— Operating receipts —', values: [], ytd: 0, section: true },
-    { label: 'Cash received from customers', values: revAggCF, ytd: revYtdCF, indent: true },
-    { label: 'Other operating receipts', values: oiAggCF, ytd: oiYtdCF, indent: true },
-    { label: 'Total operating receipts', values: receiptsAggCF, ytd: receiptsYtdCF, bold: true },
+    {
+      label: 'Total operating receipts',
+      values: receiptsAggCF,
+      ytd: receiptsYtdCF,
+      bold: true,
+      children: [
+        { label: 'Cash received from customers', values: revAggCF, ytd: revYtdCF, indent: true },
+        { label: 'Other operating receipts', values: oiAggCF, ytd: oiYtdCF, indent: true },
+      ],
+    },
 
     { label: '— Operating payments —', values: [], ytd: 0, section: true },
-    { label: 'Cost of revenue paid', values: cogsAggCF, ytd: cogsYtdCF, indent: true },
-    { label: 'Operating expenses paid (ex-interest)', values: opexAggCF, ytd: opexYtdCF, indent: true },
-    { label: 'Interest paid', values: interestAggCF, ytd: interestYtdCF, indent: true },
-    { label: 'Income tax paid', values: taxAggCF, ytd: taxYtdCF, indent: true },
-    { label: 'Total operating payments', values: paymentsAggCF, ytd: paymentsYtdCF, bold: true },
+    {
+      label: 'Total operating payments',
+      values: paymentsAggCF,
+      ytd: paymentsYtdCF,
+      bold: true,
+      children: [
+        { label: 'Cost of revenue paid', values: cogsAggCF, ytd: cogsYtdCF, indent: true },
+        { label: 'Operating expenses paid (ex-interest)', values: opexAggCF, ytd: opexYtdCF, indent: true },
+        { label: 'Interest paid', values: interestAggCF, ytd: interestYtdCF, indent: true },
+        { label: 'Income tax paid', values: taxAggCF, ytd: taxYtdCF, indent: true },
+      ],
+    },
 
     { label: '— Bridge to indirect —', values: [], ytd: 0, section: true },
-    { label: 'Cash surplus before working capital', values: preWCAggCF, ytd: preWCYtdCF, bold: true },
-    { label: 'Δ Current Liabilities', values: deltaCLAggCF, ytd: deltaCLYtdCF, indent: true },
+    {
+      label: 'Cash surplus before working capital',
+      values: preWCAggCF,
+      ytd: preWCYtdCF,
+      bold: true,
+      children: [
+        { label: 'Δ Current Liabilities', values: deltaCLAggCF, ytd: deltaCLYtdCF, indent: true },
+      ],
+    },
 
     { label: '— Reconciled result —', values: [], ytd: 0, section: true },
-    { label: 'Net cash from operations (direct)', values: reconOCFAggCF, ytd: reconOCFYtdCF, bold: true, highlight: true },
-    { label: 'Indirect-method OCF (reference)', values: indirectAggCF, ytd: totalOCF, indent: true },
-    { label: 'Drift vs indirect', values: driftAggCF, ytd: driftYtdCF, pctRow: true },
+    {
+      label: 'Net cash from operations (direct)',
+      values: reconOCFAggCF,
+      ytd: reconOCFYtdCF,
+      bold: true,
+      highlight: true,
+      children: [
+        { label: 'Indirect-method OCF (reference)', values: indirectAggCF, ytd: totalOCF, indent: true },
+        { label: 'Drift vs indirect', values: driftAggCF, ytd: driftYtdCF, pctRow: true },
+      ],
+    },
   ];
 
   const latestFAFormatted = formatCr(monthlyFixedAssets[11]);

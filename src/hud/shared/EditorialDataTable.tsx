@@ -195,41 +195,58 @@ function Row({
       </tr>
       <AnimatePresence>
         {expanded &&
-          row.children?.map((child) => (
-            <motion.tr
-              key={child.label}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <td style={{ ...labelStyle, paddingLeft: 36, color: 'var(--text-muted)' }}>
-                {child.label}
-              </td>
-              {child.values.map((v, i) => (
-                <td
-                  key={i}
-                  style={{
-                    ...cellStyle,
-                    color: v < 0 ? 'var(--accent-coral)' : 'var(--text-muted)',
-                  }}
-                >
-                  {fmtVal(v)}
-                </td>
-              ))}
-              {child.ytd !== undefined && (
+          row.children?.map((child) => {
+            const isPct = !!child.pctRow;
+            const fmtChild = (val: number): string =>
+              isPct ? mask(`${val.toFixed(1)}%`) : mask(formatValue(val));
+            const childColor = (val: number): string =>
+              isPct ? 'var(--text-muted)' : val < 0 ? 'var(--accent-coral)' : 'var(--text-muted)';
+
+            return (
+              <motion.tr
+                key={child.label}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
                 <td
                   style={{
-                    ...cellStyle,
-                    color: child.ytd < 0 ? 'var(--accent-coral)' : 'var(--text-muted)',
-                    borderLeft: '1px solid var(--border-subtle)',
+                    ...labelStyle,
+                    paddingLeft: 36,
+                    color: 'var(--text-muted)',
+                    fontStyle: isPct ? 'italic' : 'normal',
                   }}
                 >
-                  {fmtVal(child.ytd)}
+                  {child.label}
                 </td>
-              )}
-            </motion.tr>
-          ))}
+                {child.values.map((v, i) => (
+                  <td
+                    key={i}
+                    style={{
+                      ...cellStyle,
+                      color: childColor(v),
+                      fontStyle: isPct ? 'italic' : cellStyle.fontStyle,
+                    }}
+                  >
+                    {fmtChild(v)}
+                  </td>
+                ))}
+                {child.ytd !== undefined && (
+                  <td
+                    style={{
+                      ...cellStyle,
+                      color: childColor(child.ytd),
+                      fontStyle: isPct ? 'italic' : cellStyle.fontStyle,
+                      borderLeft: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    {fmtChild(child.ytd)}
+                  </td>
+                )}
+              </motion.tr>
+            );
+          })}
       </AnimatePresence>
     </>
   );

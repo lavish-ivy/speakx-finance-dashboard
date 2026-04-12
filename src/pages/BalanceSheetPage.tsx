@@ -688,17 +688,29 @@ export default function BalanceSheetPage() {
 
   const bsRows: EditorialDataRow[] = [
     { label: '— Assets —', values: [], section: true },
-    { label: 'Non-Current Assets', values: aggregate(monthlyNCA, period, true), bold: true },
-    { label: 'Fixed Assets (PP&E)', values: aggregate(monthlyFixedAssets, period, true), indent: true },
-    { label: 'Investments (Treasury)', values: aggregate(monthlyInvestments, period, true), indent: true },
+    {
+      label: 'Non-Current Assets',
+      values: aggregate(monthlyNCA, period, true),
+      bold: true,
+      children: [
+        { label: 'Fixed Assets (PP&E)', values: aggregate(monthlyFixedAssets, period, true), indent: true },
+        { label: 'Investments (Treasury)', values: aggregate(monthlyInvestments, period, true), indent: true },
+      ],
+    },
     { label: 'Current Assets (Cash & Equiv.)', values: aggregate(monthlyCA, period, true), bold: true },
     { label: 'Total Assets', values: aggregate(monthlyTotalAssets, period, true), bold: true, highlight: true },
 
     { label: '— Equity & Liabilities —', values: [], section: true },
-    { label: 'Total Equity (Net Worth)', values: aggregate(equityRolled, period, true), bold: true },
-    { label: 'Capital Account', values: aggregate(monthlyCapital, period, true), indent: true },
-    { label: 'P&L A/c (prior periods)', values: aggregate(monthlyPnLAccount, period, true), indent: true },
-    { label: 'Current Period PBT (not yet closed)', values: aggregate(monthlyPBT, period, true), indent: true },
+    {
+      label: 'Total Equity (Net Worth)',
+      values: aggregate(equityRolled, period, true),
+      bold: true,
+      children: [
+        { label: 'Capital Account', values: aggregate(monthlyCapital, period, true), indent: true },
+        { label: 'P&L A/c (prior periods)', values: aggregate(monthlyPnLAccount, period, true), indent: true },
+        { label: 'Current Period PBT (not yet closed)', values: aggregate(monthlyPBT, period, true), indent: true },
+      ],
+    },
     { label: 'Non-Current Liabilities (Loans)', values: aggregate(monthlyNCL, period, true), bold: true },
     { label: 'Current Liabilities', values: aggregate(monthlyCL, period, true), bold: true },
     { label: 'Total Equity & Liabilities', values: aggregate(totalEL, period, true), bold: true, highlight: true },
