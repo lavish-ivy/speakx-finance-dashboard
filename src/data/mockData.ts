@@ -34,6 +34,8 @@ import {
   monthlyTotalAssets as monthlyTotalAssetsLakhs,
   monthlyOCF as monthlyOCFLakhs,
   monthlyFreeCashFlow as monthlyFCFLakhs,
+  opexMonthly,
+  investmentsMonthly,
 } from './financialData';
 
 // ── Unit conversion helpers ─────────────────────────────────────────────────
@@ -103,18 +105,24 @@ const investmentsMarCr = toCr(monthlyInvestmentsLakhsReal[idxMar]);
 const fixedAssetsMarCr = toCr(monthlyFixedAssetsLakhs[idxMar]);
 const currentAssetsMarCr = toCr(monthlyCALakhs[idxMar]);
 
-// ── OpEx breakdown (ledger-level reference, NOT reconciled to group total) ──
-// Ledger splits don't sum exactly to group-level Indirect Expenses — the shortfall
-// is year-end provisions (ESOP, audit, impairment) that live outside these buckets.
-// Kept for display rhythm; percentages recalculated against group total.
+// ── OpEx breakdown (derived from Tally ledger-level data in financialData.ts) ──
+
+const sumLedger = (arr: number[]): number => +(arr.reduce((a, b) => a + b, 0) / LAKHS_PER_CRORE).toFixed(2);
+
+const opexPerfMktg = sumLedger(opexMonthly.performanceMarketing);
+const opexEmployees = sumLedger(opexMonthly.employeeBenefits);
+const opexIT = sumLedger(opexMonthly.itExpenses);
+const opexProfessional = sumLedger(opexMonthly.professionalCharges);
+const opexGateway = sumLedger(opexMonthly.financeCharges);
+const opexOther = +(ytdIndirectExp - opexPerfMktg - opexEmployees - opexIT - opexProfessional - opexGateway).toFixed(2);
 
 const opexRawBreakdown = [
-  { category: 'Performance Marketing', amount: 23.42, color: '#FF9F0A' },
-  { category: 'Employee Benefits', amount: 10.73, color: '#BF5AF2' },
-  { category: 'IT Expenses', amount: 3.40, color: '#00FFCC' },
-  { category: 'Professional Charges', amount: 1.59, color: '#64D2FF' },
-  { category: 'Finance Charges', amount: 1.20, color: '#FFD700' },
-  { category: 'Other OpEx', amount: +(ytdIndirectExp - 40.34).toFixed(2), color: '#8A8F98' },
+  { category: 'Performance Marketing',  amount: opexPerfMktg,     color: '#FF9F0A' },
+  { category: 'Employee Benefits',      amount: opexEmployees,    color: '#BF5AF2' },
+  { category: 'IT Expenses',            amount: opexIT,           color: '#00FFCC' },
+  { category: 'Professional Charges',   amount: opexProfessional, color: '#64D2FF' },
+  { category: 'Payment Gateway Charges', amount: opexGateway,     color: '#FFD700' },
+  { category: 'Other OpEx',             amount: opexOther,        color: '#8A8F98' },
 ];
 const opexCategories = opexRawBreakdown.map((row) => ({
   ...row,
@@ -305,22 +313,21 @@ export const assetComposition = {
   ],
 };
 
-// ── Cash & Liquidity table ─────────────────────────────────────────────────
-// Ledger-level split below is from a dated reference — Tally group-level cannot
-// break Investments into FD/Bond/MF categories over HTTP. Totals reconcile to
-// group-level Investments via the "Total Investments" row.
+// ── Cash & Liquidity table (derived from Tally ledger-level investmentsMonthly) ──
 
-const refFixedDeposits = 35.20;
-const refCorporateBonds = 31.78;
-const refCorporateFDs = 14.28;
-const refMutualFunds = investmentsMarCr - refFixedDeposits - refCorporateBonds - refCorporateFDs;
+const invMar = (arr: number[]): number => toCr(arr[idxMar]);
+
+const marFDs = +(invMar(investmentsMonthly.fdICICI) + invMar(investmentsMonthly.fdKotak) + invMar(investmentsMonthly.fdYesBank) + invMar(investmentsMonthly.fdRBL) + invMar(investmentsMonthly.fdHDFC)).toFixed(2);
+const marCorporateBonds = invMar(investmentsMonthly.corporateBonds);
+const marCorporateFDs = invMar(investmentsMonthly.corporateFD);
+const marMutualFunds = +(invMar(investmentsMonthly.mutualFund) + invMar(investmentsMonthly.bajajLiquid) + invMar(investmentsMonthly.bajajMoneyMkt)).toFixed(2);
 
 export const cashLiquidityData = [
   { metric: 'Current Assets (Bank, Wallets, Other)', value: currentAssetsMarCr, bold: true, sub: 'HDFC, ICICI, Razorpay, PhonePe, deposits' },
-  { metric: 'Fixed Deposits',            value: refFixedDeposits, bold: false, sub: 'ICICI, Kotak, RBL, HDFC, Yes Bank' },
-  { metric: 'Corporate Bonds',           value: refCorporateBonds, bold: false },
-  { metric: 'Corporate FDs',             value: refCorporateFDs, bold: false },
-  { metric: 'Mutual Funds',              value: +refMutualFunds.toFixed(2), bold: false, sub: 'balancing line to Tally Investments' },
+  { metric: 'Fixed Deposits',            value: marFDs, bold: false, sub: 'ICICI, Kotak, RBL, HDFC, Yes Bank' },
+  { metric: 'Corporate Bonds',           value: marCorporateBonds, bold: false },
+  { metric: 'Corporate FDs',             value: marCorporateFDs, bold: false },
+  { metric: 'Mutual Funds',              value: marMutualFunds, bold: false },
   { metric: 'Total Investments',         value: investmentsMarCr, bold: true },
   { metric: 'TOTAL LIQUIDITY',           value: +(currentAssetsMarCr + investmentsMarCr).toFixed(2), bold: true },
 ];
