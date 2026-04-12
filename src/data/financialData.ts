@@ -78,13 +78,15 @@ export const opexMonthly = {
 export const monthlyTotalOpex = [183.35, 253.40, 333.04, 351.61, 303.55, 328.93, 350.17, 570.06, 474.17, 482.66, 459.98, 564.29];
 
 /**
- * Finance Costs per month (pulled out of `opexMonthly.financeCharges` so it
- * can sit below EBIT on the P&L waterfall, per Ind-AS 1 / Schedule III).
- * Under Ind-AS, finance costs are a separate line after EBIT — EBITDA must
- * be reported BEFORE interest. Previously these were buried inside OpEx,
- * which understated EBITDA by ~₹1.20 Cr YTD.
+ * Finance Costs per month — true interest expense only.
+ *
+ * Tally's "Finance Charges" ledger is primarily payment gateway fees
+ * (Razorpay, CashFree, Stripe wallet charges) which are OPERATING costs
+ * for a B2C SaaS company, not financing costs. Those stay inside OpEx.
+ * Only `interestOnCarLoan` (secured loan interest) qualifies as a
+ * non-operating finance cost per Ind-AS 1 / Schedule III.
  */
-export const monthlyFinanceCosts = [...opexMonthly.financeCharges];
+export const monthlyFinanceCosts = [...opexMonthly.interestOnCarLoan];
 
 /**
  * Operating Expenses = Total OpEx − Finance Costs − Depreciation.
@@ -355,6 +357,7 @@ export const pnlStructure: PnlRow[] = [
       { label: 'Performance Marketing', monthly: opexMonthly.performanceMarketing, ytd: sumArr(opexMonthly.performanceMarketing), indent: true },
       { label: 'IT Expenses', monthly: opexMonthly.itExpenses, ytd: sumArr(opexMonthly.itExpenses), indent: true },
       { label: 'Professional Charges', monthly: opexMonthly.professionalCharges, ytd: sumArr(opexMonthly.professionalCharges), indent: true },
+      { label: 'Payment Gateway Charges', monthly: opexMonthly.financeCharges, ytd: sumArr(opexMonthly.financeCharges), indent: true },
       { label: 'Travel & Conveyance', monthly: opexMonthly.travelConveyance, ytd: sumArr(opexMonthly.travelConveyance), indent: true },
       { label: 'Rent', monthly: opexMonthly.rent, ytd: sumArr(opexMonthly.rent), indent: true },
       { label: 'Office Expenses', monthly: opexMonthly.officeExpenses, ytd: sumArr(opexMonthly.officeExpenses), indent: true },
@@ -364,7 +367,6 @@ export const pnlStructure: PnlRow[] = [
       { label: 'Repairs & Maintenance', monthly: opexMonthly.repairsMaintenance, ytd: sumArr(opexMonthly.repairsMaintenance), indent: true },
       { label: 'Telephone', monthly: opexMonthly.telephone, ytd: sumArr(opexMonthly.telephone), indent: true },
       { label: 'Insurance', monthly: opexMonthly.insurance, ytd: sumArr(opexMonthly.insurance), indent: true },
-      { label: 'Interest on Car Loan', monthly: opexMonthly.interestOnCarLoan, ytd: sumArr(opexMonthly.interestOnCarLoan), indent: true },
       { label: 'Foreign Exchange', monthly: opexMonthly.foreignExchange, ytd: sumArr(opexMonthly.foreignExchange), indent: true },
       { label: 'Power & Fuel', monthly: opexMonthly.powerFuel, ytd: sumArr(opexMonthly.powerFuel), indent: true },
       { label: 'Loss on Damage', monthly: opexMonthly.lossDamageAssets, ytd: sumArr(opexMonthly.lossDamageAssets), indent: true },
